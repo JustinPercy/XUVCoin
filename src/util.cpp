@@ -6,7 +6,7 @@
 // Copyright (c) 2014-2015 The Dash developers
 // Copyright (c) 2015 The Crave developers
 // Copyright (c) 2017 XUVCoin developers
-// Copyright (c) 2018-2019 Profit Hunters Coin developers
+// Copyright (c) 2018-2020 Profit Hunters Coin developers
 
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php
@@ -46,7 +46,6 @@ namespace boost
 #include <boost/program_options/parsers.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
-#include <boost/foreach.hpp>
 #include <boost/thread.hpp>
 
 #include <boost/asio.hpp>
@@ -97,10 +96,10 @@ bool fEnableInstantX = true;
 
 int nInstantXDepth = 10;
 int nDarksendRounds = 2;
-int nAnonymizePHCAmount = 1000;
+int nAnonymizeAmount = 1000;
 int nLiquidityProvider = 0;
 
-unsigned int LogPrintLog = 0;
+
 
 /** Spork enforcement enabled time */
 int64_t enforceMasternodePaymentsTime = 4085657524;
@@ -127,7 +126,9 @@ bool fCommandLine = false;
 
 string strMiscWarning;
 
-bool fDebug = false;
+unsigned int LogPrintLog = 0;
+
+bool fDebug = true;
 bool fDebugSmsg = false;
 bool fPrintToConsole = false;
 bool fPrintToDebugLog = true;
@@ -139,6 +140,8 @@ vector<string> DebugCategories;
 
 // Init OpenSSL library multithreading support
 static CCriticalSection** ppmutexOpenSSL;
+
+static boost::mutex* mutexDebugLog = NULL;
 
 
 void copyfile( std::string srce_file, std::string dest_file )
@@ -159,6 +162,36 @@ void locking_callback(int mode, int i, const char* file, int line)
     {
         LEAVE_CRITICAL_SECTION(*ppmutexOpenSSL[i]);
     }
+}
+
+
+std::string timeStampToHReadble(const time_t rawtime)
+{
+    struct tm * dt;
+    char buffer [30];
+
+    dt = localtime(&rawtime);
+
+    strftime(buffer, sizeof(buffer), "%m%d%H%M%y", dt);
+
+    return std::string(buffer);
+}
+
+
+std::string timeToHReadble()
+{
+  time_t rawtime;
+  struct tm * timeinfo;
+  std::string tempSTR;
+
+  time ( &rawtime );
+  timeinfo = localtime ( &rawtime );
+
+  tempSTR = asctime (timeinfo);
+
+  tempSTR.replace(tempSTR.find("\n"), 2, "");
+
+  return tempSTR;
 }
 
 
@@ -199,6 +232,8 @@ class CInit
             }
 
             OPENSSL_free(ppmutexOpenSSL);
+
+            delete mutexDebugLog;
         }
 }
 instance_of_cinit;
@@ -237,6 +272,7 @@ void RandAddSeedPerfmon()
 
     // This can take up to 2 seconds, so only do it every 10 minutes
     static int64_t nLastPerfmon;
+
     if (GetTime() < nLastPerfmon + 10 * 60)
     {
         return;
@@ -323,7 +359,6 @@ static boost::once_flag debugPrintInitFlag = BOOST_ONCE_INIT;
 // We use boost::call_once() to make sure these are initialized in
 // in a thread-safe manner the first time it is called:
 static FILE* fileout = NULL;
-static boost::mutex* mutexDebugLog = NULL;
 
 
 static void DebugPrintInit()
@@ -349,6 +384,7 @@ static void DebugPrintInit()
     }
 
     boost::filesystem::path pathDebug = GetDataDir(true) / "debug.log";
+
     fileout = fopen(pathDebug.string().c_str(), "a");
 
     if (fileout)
@@ -435,29 +471,31 @@ bool LogAcceptCategory(const char* category)
         const set<string>& setCategories = *ptrCategory.get();
 
         // if not debugging everything and not debugging specific category, LogPrint does nothing.
-        if (setCategories.count(string("")) == 0 && setCategories.count(string("*")) == 0 && setCategories.count(string(category)) == 0)
+        if (setCategories.count(string("")) == 0
+            && setCategories.count(string("*")) == 0
+            && setCategories.count(string(category)) == 0)
         {
             return false;
         }
 
     }
 
-
     return true;
-
-
 }
 
 
 int LogPrintStr(const std::string &str)
 {
+    std::string output;
+
     if (!fDebug)
     {
         return 0;
     }
 
     // Prevent Logfile flooding of many sequential duplicates
-    if (LogPrintLog == str.size())
+    if (LogPrintLog > 0
+        && LogPrintLog == str.size())
     {
         return 0;
     }
@@ -467,10 +505,22 @@ int LogPrintStr(const std::string &str)
     if (fPrintToConsole)
     {
         // print to console
-        ret = fwrite(str.data(), 1, str.size(), stdout);
+
+        if (fLogTimestamps)
+        {
+            output.append(DateTimeStrFormat("%Y-%m-%d %H:%M:%S", GetTime()));
+        }
+
+        output.append(" " + str);
+
+        printf("%s", output.c_str());
+
+        ret = str.size();
     }
     else if (fPrintToDebugLog)
     {
+        // print to log
+
         static bool fStartedNewLine = true;
 
         boost::call_once(&DebugPrintInit, debugPrintInitFlag);
@@ -496,12 +546,14 @@ int LogPrintStr(const std::string &str)
         }
 
         // Debug print useful for profiling
-        if (fLogTimestamps && fStartedNewLine)
+        if (fLogTimestamps
+            && fStartedNewLine)
         {
             ret += fprintf(fileout, "%s ", DateTimeStrFormat("%Y-%m-%d %H:%M:%S", GetTime()).c_str());
         }
 
-        if (!str.empty() && str[str.size()-1] == '\n')
+        if (!str.empty()
+            && str[str.size()-1] == '\n')
         {
             fStartedNewLine = true;
         }
@@ -645,7 +697,8 @@ bool ParseMoney(const char* pszIn, int64_t& nRet)
         return false;
     } 
         
-    if (nUnits < 0 || nUnits > COIN)
+    if (nUnits < 0
+        || nUnits > COIN)
     {
         return false;
     }
@@ -701,7 +754,7 @@ const signed char p_util_hexdigit[256] =
 
 bool IsHex(const string& str)
 {
-    BOOST_FOREACH(char c, str)
+    for(char c: str)
     {
         if (HexDigit(c) < 0)
         {
@@ -809,7 +862,7 @@ void ParseParameters(int argc, const char* const argv[])
     }
 
     // New 0.6 features:
-    BOOST_FOREACH(const PAIRTYPE(string,string)& entry, mapArgs)
+    for(const PAIRTYPE(string,string)& entry: mapArgs)
     {
         string name = entry.first;
 
@@ -903,7 +956,7 @@ string EncodeBase64(const unsigned char* pch, size_t len)
     string strRet="";
     strRet.reserve((len+2)/3*4);
 
-    int mode=0, left=0;
+    int mode = 0, left = 0;
     const unsigned char *pchEnd = pch+len;
 
     while (pch<pchEnd)
@@ -1061,7 +1114,10 @@ vector<unsigned char> DecodeBase64(const char* p, bool* pfInvalid)
             case 2:
             {
                 // 4n+2 base64 characters processed: require '=='
-                if (left || p[0] != '=' || p[1] != '=' || decode64_table[(unsigned char)p[2]] != -1)
+                if (left
+                    || p[0] != '='
+                    || p[1] != '='
+                    || decode64_table[(unsigned char)p[2]] != -1)
                 {
                     *pfInvalid = true;
                 }
@@ -1071,7 +1127,9 @@ vector<unsigned char> DecodeBase64(const char* p, bool* pfInvalid)
             case 3:
             {
                 // 4n+3 base64 characters processed: require '='
-                if (left || p[0] != '=' || decode64_table[(unsigned char)p[1]] != -1)
+                if (left
+                    || p[0] != '='
+                    || decode64_table[(unsigned char)p[1]] != -1)
                 {
                     *pfInvalid = true;
                 }
@@ -1096,18 +1154,26 @@ SecureString EncodeBase64Secure(const SecureString& input)
 {
     // Init openssl BIO with base64 filter and memory output
     BIO *b64, *mem;
+
     b64 = BIO_new(BIO_f_base64());
-    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL); // No newlines in output
+
+    // No newlines in output
+    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
+
     mem = BIO_new(BIO_s_mem());
+
     BIO_push(b64, mem);
 
     // Decode the string
     BIO_write(b64, &input[0], input.size());
+
     (void) BIO_flush(b64);
 
     // Create output variable from buffer mem ptr
     BUF_MEM *bptr;
+
     BIO_get_mem_ptr(b64, &bptr);
+
     SecureString output(bptr->data, bptr->length);
 
     // Cleanse secure data buffer from memory
@@ -1127,18 +1193,25 @@ SecureString DecodeBase64Secure(const SecureString& input)
 
     // Init openssl BIO with base64 filter and memory input
     BIO *b64, *mem;
+
     b64 = BIO_new(BIO_f_base64());
-    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL); //Do not use newlines to flush buffer
+
+    //Do not use newlines to flush buffer
+    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
+
     mem = BIO_new_mem_buf((void *) &input[0], input.size());
+
     BIO_push(b64, mem);
 
     // Prepare buffer to receive decoded data
     if(input.size() % 4 != 0)
     {
-        throw runtime_error("Input length should be a multiple of 4");
+        throw runtime_error("ERROR - Input length should be a multiple of 4");
     }
     
-    size_t nMaxLen = input.size() / 4 * 3; // upper bound, guaranteed divisible by 4
+    // upper bound, guaranteed divisible by 4
+    size_t nMaxLen = input.size() / 4 * 3;
+
     output.resize(nMaxLen);
 
     // Decode the string
@@ -1219,11 +1292,12 @@ string EncodeBase32(const unsigned char* pch, size_t len)
     }
 
     static const int nPadding[5] = {0, 6, 4, 3, 1};
+    
     if (mode)
     {
         strRet += pbase32[left];
         
-        for (int n=0; n<nPadding[mode]; n++)
+        for (int n = 0; n < nPadding[mode]; n++)
         {
              strRet += '=';
         }
@@ -1373,7 +1447,14 @@ vector<unsigned char> DecodeBase32(const char* p, bool* pfInvalid)
             case 2:
             {
                 // 8n+2 base32 characters processed: require '======'
-                if (left || p[0] != '=' || p[1] != '=' || p[2] != '=' || p[3] != '=' || p[4] != '=' || p[5] != '=' || decode32_table[(unsigned char)p[6]] != -1)
+                if (left
+                    || p[0] != '='
+                    || p[1] != '='
+                    || p[2] != '='
+                    || p[3] != '='
+                    || p[4] != '='
+                    || p[5] != '='
+                    || decode32_table[(unsigned char)p[6]] != -1)
                 {
                     *pfInvalid = true;
                 }
@@ -1383,7 +1464,12 @@ vector<unsigned char> DecodeBase32(const char* p, bool* pfInvalid)
             case 4:
             {
                 // 8n+4 base32 characters processed: require '===='
-                if (left || p[0] != '=' || p[1] != '=' || p[2] != '=' || p[3] != '=' || decode32_table[(unsigned char)p[4]] != -1)
+                if (left
+                    || p[0] != '='
+                    || p[1] != '='
+                    || p[2] != '='
+                    || p[3] != '='
+                    || decode32_table[(unsigned char)p[4]] != -1)
                 {
                     *pfInvalid = true;
                 }
@@ -1393,7 +1479,11 @@ vector<unsigned char> DecodeBase32(const char* p, bool* pfInvalid)
             case 5:
             {
                 // 8n+5 base32 characters processed: require '==='
-                if (left || p[0] != '=' || p[1] != '=' || p[2] != '=' || decode32_table[(unsigned char)p[3]] != -1)
+                if (left
+                    || p[0] != '='
+                    || p[1] != '='
+                    || p[2] != '='
+                    || decode32_table[(unsigned char)p[3]] != -1)
                 {
                     *pfInvalid = true;
                 }
@@ -1403,7 +1493,9 @@ vector<unsigned char> DecodeBase32(const char* p, bool* pfInvalid)
             case 7:
             {
                 // 8n+7 base32 characters processed: require '='
-                if (left || p[0] != '=' || decode32_table[(unsigned char)p[1]] != -1)
+                if (left
+                    || p[0] != '='
+                    || decode32_table[(unsigned char)p[1]] != -1)
                 {
                     *pfInvalid = true;
                 }
@@ -1438,7 +1530,8 @@ bool WildcardMatch(const char* psz, const char* mask)
 
             case '*':
             {
-                return WildcardMatch(psz, mask+1) || (*psz && WildcardMatch(psz+1, mask));
+                return WildcardMatch(psz, mask+1)
+                        || (*psz && WildcardMatch(psz+1, mask));
             }
             break;
 
@@ -1489,7 +1582,11 @@ bool ParseInt32(const std::string& str, int32_t *out)
     // we still have to check that the returned value is within the range of an *int32_t*. On 64-bit
     // platforms the size of these types may be different.
     
-    return endp && *endp == 0 && !errno && n >= std::numeric_limits<int32_t>::min() && n <= std::numeric_limits<int32_t>::max();
+    return endp
+            && *endp == 0
+            && !errno
+            && n >= std::numeric_limits<int32_t>::min()
+            && n <= std::numeric_limits<int32_t>::max();
 }
 
 
@@ -1524,6 +1621,7 @@ std::string FormatParagraph(const std::string in, size_t width, size_t indent)
             if ((col + endword - ptr) > width)
             {
                 out << '\n';
+
                 for(size_t i=0; i<indent; ++i)
                 {
                     out << ' ';
@@ -1558,11 +1656,11 @@ static std::string FormatException(std::exception* pex, const char* pszThread)
 #endif
     if (pex)
     {
-        return strprintf("EXCEPTION: %s       \n%s       \n%s in %s       \n", typeid(*pex).name(), pex->what(), pszModule, pszThread);
+        return strprintf("EXCEPTION: %s       \n%s       \n %s in %s       \n", typeid(*pex).name(), pex->what(), pszModule, pszThread);
     }
     else
     {
-        return strprintf("UNKNOWN EXCEPTION       \n%s in %s       \n", pszModule, pszThread);
+        return strprintf("UNKNOWN EXCEPTION       \n %s in %s       \n", pszModule, pszThread);
     }
 }
 
@@ -1571,9 +1669,9 @@ void PrintException(std::exception* pex, const char* pszThread)
 {
     std::string message = FormatException(pex, pszThread);
     
-    LogPrintf("\n\n************************\n%s\n", message);
+    LogPrintf("\n\n ************************ \n %s \n", message);
     
-    fprintf(stderr, "\n\n************************\n%s\n", message.c_str());
+    fprintf(stderr, "\n\n ************************ \n %s \n", message.c_str());
     
     strMiscWarning = message;
     
@@ -1585,9 +1683,9 @@ void PrintExceptionContinue(std::exception* pex, const char* pszThread)
 {
     std::string message = FormatException(pex, pszThread);
     
-    LogPrintf("\n\n************************\n%s\n", message);
+    LogPrintf("\n\n ************************ \n %s \n", message);
     
-    fprintf(stderr, "\n\n************************\n%s\n", message.c_str());
+    fprintf(stderr, "\n\n ************************ \n %s \n", message.c_str());
     
     strMiscWarning = message;
 }
@@ -1609,7 +1707,8 @@ boost::filesystem::path GetDefaultDataDir()
     
     char* pszHome = getenv("HOME");
     
-    if (pszHome == NULL || strlen(pszHome) == 0)
+    if (pszHome == NULL
+        || strlen(pszHome) == 0)
     {
         pathRet = fs::path("/");
     }
@@ -1687,7 +1786,8 @@ const boost::filesystem::path &GetDataDir(bool fNetSpecific)
         path = GetDefaultDataDir();
     }
 
-    if (fNetSpecific || GetArg("-testnet", false))
+    if (fNetSpecific
+        || GetArg("-testnet", false))
     {
         path /= Params().DataDir();
     }
@@ -1815,7 +1915,8 @@ bool RenameOver(boost::filesystem::path src, boost::filesystem::path dest)
 
 void FileCommit(FILE *fileout)
 {
-    fflush(fileout); // harmless if redundantly called
+    // harmless if redundantly called
+    fflush(fileout);
 #ifdef WIN32
     HANDLE hFile = (HANDLE)_get_osfhandle(_fileno(fileout));
     FlushFileBuffers(hFile);
@@ -1833,9 +1934,11 @@ std::string getTimeString(int64_t timestamp, char *buffer, size_t nBuffer)
     
     dt = localtime(&t);
     
-    strftime(buffer, nBuffer, "%Y-%m-%d %H:%M:%S %z", dt); // %Z shows long strings on windows
+    // %Z shows long strings on windows
+    strftime(buffer, nBuffer, "%Y-%m-%d %H:%M:%S %z", dt);
     
-    return std::string(buffer); // copies the null-terminated character sequence
+    // copies the null-terminated character sequence
+    return std::string(buffer);
 };
 
 
@@ -1870,6 +1973,7 @@ void ShrinkDebugFile()
 {
     // Scroll debug.log if it's getting too big
     boost::filesystem::path pathLog = GetDataDir(true) / "debug.log";
+
     FILE* file = fopen(pathLog.string().c_str(), "r");
     
     if (file && boost::filesystem::file_size(pathLog) > 10 * 1000000)
@@ -1884,6 +1988,7 @@ void ShrinkDebugFile()
         fclose(file);
 
         file = fopen(pathLog.string().c_str(), "w");
+
         if (file)
         {
             fwrite(pch, 1, nBytes, file);
@@ -1903,8 +2008,8 @@ void ShrinkDebugFile()
 //  - System clock
 //  - Median of other nodes clocks
 //  - The user (asking the user to fix the system clock if the first two disagree)
-//
-static int64_t nMockTime = 0;  // For unit testing
+// For unit testing
+static int64_t nMockTime = 0;  
 
 
 int64_t GetTime()
@@ -1963,10 +2068,11 @@ void AddTimeData(const CNetAddr& ip, int64_t nTime)
     
     if (fDebug)
     {
-        LogPrint("util", "%s : Added time data, samples %d, offset %+d (%+d minutes)\n", __FUNCTION__, vTimeOffsets.size(), nOffsetSample, nOffsetSample/60);
+        LogPrint("util", "%s : NOTICE - Added time data, samples %d, offset %+d (%+d minutes) \n", __FUNCTION__, vTimeOffsets.size(), nOffsetSample, nOffsetSample/60);
     }
 
-    if (vTimeOffsets.size() >= 5 && vTimeOffsets.size() % 2 == 1)
+    if (vTimeOffsets.size() >= 5
+        && vTimeOffsets.size() % 2 == 1)
     {
         int64_t nMedian = vTimeOffsets.median();
         
@@ -1982,14 +2088,16 @@ void AddTimeData(const CNetAddr& ip, int64_t nTime)
             nTimeOffset = 0;
 
             static bool fDone;
+
             if (!fDone)
             {
                 // If nobody has a time different than ours but within 5 minutes of ours, give a warning
                 bool fMatch = false;
 
-                BOOST_FOREACH(int64_t nOffset, vSorted)
+                for(int64_t nOffset: vSorted)
                 {
-                    if (nOffset != 0 && abs64(nOffset) < 5 * 60)
+                    if (nOffset != 0
+                        && abs64(nOffset) < 5 * 60)
                     {
                         fMatch = true;
                     }
@@ -1999,13 +2107,13 @@ void AddTimeData(const CNetAddr& ip, int64_t nTime)
                 {
                     fDone = true;
 
-                    string strMessage = _("Warning: Please check that your computer's date and time are correct! If your clock is wrong Transfercoin will not work properly.");
+                    string strMessage = _("Please check that your computer's date and time are correct! If your clock is wrong Transfercoin will not work properly.");
                     
                     strMiscWarning = strMessage;
                     
                     if (fDebug)
                     {
-                        LogPrint("util", "%s : *** %s\n", __FUNCTION__, strMessage);
+                        LogPrint("util", "%s : WARNING - %s\n", __FUNCTION__, strMessage);
                     }
 
                     uiInterface.ThreadSafeMessageBox(strMessage, "", CClientUIInterface::MSG_WARNING);
@@ -2015,14 +2123,14 @@ void AddTimeData(const CNetAddr& ip, int64_t nTime)
 
         if (fDebug)
         {
-            BOOST_FOREACH(int64_t n, vSorted)
+            for(int64_t n: vSorted)
             {
-                LogPrint("util", "%s : %+d  ", __FUNCTION__, n);
+                LogPrint("util", "%s : NOTICE - %+d  ", __FUNCTION__, n);
             }
 
-            LogPrint("util", "%s : |  ", __FUNCTION__);
+            LogPrint("util", "%s : NOTICE - |  ", __FUNCTION__);
         
-            LogPrint("util", "%s : nTimeOffset = %+d  (%+d minutes)\n", __FUNCTION__, nTimeOffset, nTimeOffset/60);
+            LogPrint("util", "%s : NOTICE - nTimeOffset = %+d  (%+d minutes)\n", __FUNCTION__, nTimeOffset, nTimeOffset/60);
         }
 
     }
@@ -2179,17 +2287,20 @@ std::string get_http_data(const std::string& server, const std::string& file)
 	try
 	{
 		boost::asio::ip::tcp::iostream s(server, "http");
-#ifndef __ANDROID__
+
+        // The entire sequence of I/O operations must complete within 60 seconds.
+        // If an expiry occurs, the socket is automatically closed and the stream
+        // becomes bad.
+#if BOOST_VERSION < 107000
 		s.expires_from_now(boost::posix_time::seconds(60));
 #else
-    // TO FIX for Android
-    // https://www.boost.org/doc/libs/1_71_0/doc/html/boost_asio/overview/cpp2011/chrono.html
-    // http://detercode121.blogspot.com/2011/05/c11-who-is-failing-boost-clang-or-gcc.html
-    // http://www.howtobuildsoftware.com/index.php/how-do/b6fO/c-11-boost-clang-boost-asio-who-is-failing-boost-clang-or-gcc-issue-with-stdchrono-used-with-boostasio
-    // https://www.boost.org/doc/libs/1_45_0/doc/html/boost_asio/example/timers/time_t_timer.cpp
+        s.expires_from_now(std::chrono::seconds(60));
 #endif
 
-		if (!s){ throw "Unable to connect: " + s.error().message(); }
+		if (!s)
+        {
+            throw "Unable to connect: " + s.error().message();
+        }
 
 		// ask for the file
 		s << "GET " << file << " HTTP/1.0\r\n";
@@ -2200,20 +2311,34 @@ std::string get_http_data(const std::string& server, const std::string& file)
 		// Check that response is OK.
 		std::string http_version;
 		s >> http_version;
+
 		unsigned int status_code;
 		s >> status_code;
+
 		std::string status_message;
 		std::getline(s, status_message);
-		if (!s && http_version.substr(0, 5) != "HTTP/"){ throw "Invalid response\n"; }
-		if (status_code != 200){ throw "Response returned with status code " + std::to_string(status_code); }
+
+		if (!s
+            && http_version.substr(0, 5) != "HTTP/")
+        { 
+            throw "ERROR - Invalid response \n";
+        }
+		
+        if (status_code != 200)
+        {
+            throw "ERROR - Response returned with status code " + std::to_string(status_code);
+        }
 
 		// Process the response headers, which are terminated by a blank line.
 		std::string header;
-		while (std::getline(s, header) && header != "\r"){}
+
+		while (std::getline(s, header) && header != "\r")
+        {}
 
 		// Write the remaining data to output.
 		std::stringstream ss;
 		ss << s.rdbuf();
+
 		return ss.str();
 	}
 	catch(std::exception& e)

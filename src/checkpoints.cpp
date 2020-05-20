@@ -13,7 +13,7 @@
 
 
 #include <boost/assign/list_of.hpp> // for 'map_list_of()'
-#include <boost/foreach.hpp>
+#include <boost/range/adaptor/reversed.hpp>
 
 #include "checkpoints.h"
 
@@ -51,6 +51,7 @@ namespace Checkpoints
         (105260, uint256("f4dc914767a9bdd700fc7ee05782a2a06320ef875c602127852423e7a6104b10"))
         (169254, uint256("866ed020ac69c2e10bf7d80b2d99b44251d549cf008fdea0e37eb1447ebefb0d"))
         (760365, uint256("bf7cad650868c964204139b1ebd15e55b685ec0e43d8fa6b4bc7d912caeedcf4"))
+        (1244657, uint256("59d0e34db2bcf82bad84a17a84eb90097311871104069595bf0b429a11fc5c5a"))
     ;
 
     // TestNet
@@ -88,7 +89,7 @@ namespace Checkpoints
     {
         MapCheckpoints& checkpoints = (TestNet() ? mapCheckpointsTestnet : mapCheckpoints);
 
-        BOOST_REVERSE_FOREACH(const MapCheckpoints::value_type& i, checkpoints)
+        for(const MapCheckpoints::value_type& i: boost::adaptors::reverse(checkpoints))
         {
             const uint256& hash = i.second;
 

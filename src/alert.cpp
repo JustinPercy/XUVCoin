@@ -6,7 +6,7 @@
 // Copyright (c) 2014-2015 The Dash developers
 // Copyright (c) 2015 The Crave developers
 // Copyright (c) 2017 XUVCoin developers
-// Copyright (c) 2018-2019 Profit Hunters Coin developers
+// Copyright (c) 2018-2020 Profit Hunters Coin developers
 
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php
@@ -29,7 +29,6 @@
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/replace.hpp>
-#include <boost/foreach.hpp>
 
 using namespace std;
 
@@ -43,12 +42,12 @@ void CUnsignedAlert::SetNull()
     nExpiration = 0;
     nID = 0;
     nCancel = 0;
-    setCancel.clear();
     nMinVer = 0;
     nMaxVer = 0;
-    setSubVer.clear();
     nPriority = 0;
 
+    setSubVer.clear();
+    setCancel.clear();
     strComment.clear();
     strStatusBar.clear();
     strReserved.clear();
@@ -58,13 +57,15 @@ void CUnsignedAlert::SetNull()
 std::string CUnsignedAlert::ToString() const
 {
     std::string strSetCancel;
-    BOOST_FOREACH(int n, setCancel)
+
+    for(int n: setCancel)
     {
         strSetCancel += strprintf("%d ", n);
     }
 
     std::string strSetSubVer;
-    BOOST_FOREACH(std::string str, setSubVer)
+
+    for(std::string str: setSubVer)
     {
         strSetSubVer += "\"" + str + "\" ";
     }
@@ -184,7 +185,7 @@ bool CAlert::CheckSignature() const
 
     if (!key.Verify(Hash(vchMsg.begin(), vchMsg.end()), vchSig))
     {
-        return error("%s : verify signature failed", __FUNCTION__);
+        return error("%s : ERROR - Verify signature failed", __FUNCTION__);
     }
 
     // Now unserialize the data
@@ -240,14 +241,14 @@ bool CAlert::ProcessAlert(bool fThread)
 
     if (nID == maxInt)
     {
-        if (!(nExpiration == maxInt &&
-                nCancel == (maxInt-1) &&
-                nMinVer == 0 &&
-                nMaxVer == maxInt &&
-                setSubVer.empty() &&
-                nPriority == maxInt &&
-                strStatusBar == "URGENT: Alert key compromised, upgrade required"
-                ))
+        if (!(nExpiration == maxInt
+            && nCancel == (maxInt-1)
+            && nMinVer == 0
+            && nMaxVer == maxInt
+            && setSubVer.empty()
+            && nPriority == maxInt
+            && strStatusBar == "URGENT: Alert key compromised, upgrade required"
+            ))
         {
             return false;
         }
@@ -261,11 +262,12 @@ bool CAlert::ProcessAlert(bool fThread)
         for (map<uint256, CAlert>::iterator mi = mapAlerts.begin(); mi != mapAlerts.end();)
         {
             const CAlert& alert = (*mi).second;
+            
             if (Cancels(alert))
             {
                 if (fDebug)
                 {
-                    LogPrint("alert", "%s : cancelling alert %d\n", __FUNCTION__, alert.nID);
+                    LogPrint("alert", "%s : OK - Cancelling alert %d \n", __FUNCTION__, alert.nID);
                 }
 
                 uiInterface.NotifyAlertChanged((*mi).first, CT_DELETED);
@@ -275,7 +277,7 @@ bool CAlert::ProcessAlert(bool fThread)
             {
                 if (fDebug)
                 {
-                    LogPrint("alert", "%s : expiring alert %d\n", __FUNCTION__, alert.nID);
+                    LogPrint("alert", "%s : NOTICE - expiring alert %d \n", __FUNCTION__, alert.nID);
                 }
 
                 uiInterface.NotifyAlertChanged((*mi).first, CT_DELETED);
@@ -288,14 +290,15 @@ bool CAlert::ProcessAlert(bool fThread)
         }
 
         // Check if this alert has been cancelled
-        BOOST_FOREACH(PAIRTYPE(const uint256, CAlert)& item, mapAlerts)
+        for(PAIRTYPE(const uint256, CAlert)& item: mapAlerts)
         {
             const CAlert& alert = item.second;
+
             if (alert.Cancels(*this))
             {
                 if (fDebug)
                 {
-                    LogPrint("alert", "%s : alert already cancelled by %d\n", __FUNCTION__, alert.nID);
+                    LogPrint("alert", "%s : ERROR - Alert already cancelled by %d \n", __FUNCTION__, alert.nID);
                 }
 
                 return false;
@@ -325,7 +328,8 @@ bool CAlert::ProcessAlert(bool fThread)
 
                 if (fThread)
                 {
-                    boost::thread t(runCommand, strCmd); // thread runs free
+                    // thread runs free
+                    boost::thread t(runCommand, strCmd);
                 }
                 else
                 {
@@ -338,7 +342,7 @@ bool CAlert::ProcessAlert(bool fThread)
 
     if (fDebug)
     {
-        LogPrint("alert", "%s : accepted alert %d, AppliesToMe()=%d\n", __FUNCTION__, nID, AppliesToMe());
+        LogPrint("alert", "%s : OK - Accepted alert %d, AppliesToMe()=%d \n", __FUNCTION__, nID, AppliesToMe());
     }
 
     return true;

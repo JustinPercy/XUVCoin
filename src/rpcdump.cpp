@@ -6,7 +6,7 @@
 // Copyright (c) 2014-2015 The Dash developers
 // Copyright (c) 2015 The Crave developers
 // Copyright (c) 2017 XUVCoin developers
-// Copyright (c) 2018-2019 Profit Hunters Coin developers
+// Copyright (c) 2018-2020 Profit Hunters Coin developers
 
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php
@@ -63,7 +63,9 @@ int64_t DecodeDumpTime(const std::string& s)
     for(size_t i=0; i<formats_n; ++i)
     {
         std::istringstream is(s);
+
         is.imbue(formats[i]);
+
         is >> pt;
         
         if(pt != bt::ptime())
@@ -86,9 +88,11 @@ std::string static EncodeDumpString(const std::string &str)
 {
     std::stringstream ret;
 
-    BOOST_FOREACH(unsigned char c, str)
+    for(unsigned char c: str)
     {
-        if (c <= 32 || c >= 128 || c == '%')
+        if (c <= 32
+            || c >= 128
+            || c == '%')
         {
             ret << '%' << HexStr(&c, &c + 1);
         }
@@ -110,7 +114,8 @@ std::string DecodeDumpString(const std::string &str)
     {
         unsigned char c = str[pos];
     
-        if (c == '%' && pos+2 < str.length())
+        if (c == '%'
+            && pos+2 < str.length())
         {
             c = (((str[pos+1]>>6)*9+((str[pos+1]-'0')&15)) << 4) | ((str[pos+2]>>6)*9+((str[pos+2]-'0')&15));
             pos += 2;
@@ -142,6 +147,7 @@ class CTxDump
             pindex = NULL;
             nValue = 0;
             fSpent = false;
+
             this->ptx = ptx;
             this->nOut = nOut;
         }
@@ -150,7 +156,9 @@ class CTxDump
 
 Value importprivkey(const Array& params, bool fHelp)
 {
-    if (fHelp || params.size() < 1 || params.size() > 3)
+    if (fHelp
+        || params.size() < 1
+        || params.size() > 3)
     {
         throw runtime_error("importprivkey <PHCprivkey> [label] [rescan=true]\n"
                             "Adds a private key (as returned by dumpprivkey) to your wallet.");
@@ -197,21 +205,23 @@ Value importprivkey(const Array& params, bool fHelp)
 
 Value importaddress(const Array& params, bool fHelp)
 {
-    if (fHelp || params.size() < 1 || params.size() > 3)
+    if (fHelp
+        || params.size() < 1
+        || params.size() > 3)
     {
         throw runtime_error("importaddress \"address\" ( \"label\" rescan )\n"
-                            "\nAdds an address or script (in hex) that can be watched as if it were in your wallet but cannot be used to spend.\n"
+                            "\nAdds an address or script (in hex) that can be watched as if it were in your wallet but cannot be used to spend. \n"
                             "\nArguments:\n"
-                            "1. \"address\"          (string, required) The address\n"
-                            "2. \"label\"            (string, optional, default=\"\") An optional label\n"
-                            "3. rescan               (boolean, optional, default=true) Rescan the wallet for transactions\n"
-                            "\nNote: This call can take minutes to complete if rescan is true.\n"
-                            "\nExamples:\n"
-                            "\nImport an address with rescan\n"
+                            "1. \"address\"          (string, required) The address \n"
+                            "2. \"label\"            (string, optional, default=\"\") An optional label \n"
+                            "3. rescan               (boolean, optional, default=true) Rescan the wallet for transactions \n"
+                            "\nNote: This call can take minutes to complete if rescan is true. \n"
+                            "\nExamples: \n"
+                            "\nImport an address with rescan \n"
                             + HelpExampleCli("importaddress", "\"myaddress\"") +
-                            "\nImport using a label without rescan\n"
+                            "\nImport using a label without rescan \n"
                             + HelpExampleCli("importaddress", "\"myaddress\" \"testing\" false") +
-                            "\nAs a JSON-RPC call\n"
+                            "\nAs a JSON-RPC call \n"
                             + HelpExampleRpc("importaddress", "\"myaddress\", \"testing\", false")
         );
     }
@@ -219,7 +229,7 @@ Value importaddress(const Array& params, bool fHelp)
 
     CScript script;
 
-    CPHCcoinAddress address(params[0].get_str());
+    CCoinAddress address(params[0].get_str());
     
     if (address.IsValid())
     {
@@ -290,7 +300,8 @@ Value importaddress(const Array& params, bool fHelp)
 
 Value importwallet(const Array& params, bool fHelp)
 {
-    if (fHelp || params.size() != 1)
+    if (fHelp
+        || params.size() != 1)
     {
         throw runtime_error("importwallet <filename>\n"
                             "Imports keys from a wallet dump file (see dumpwallet).");
@@ -299,6 +310,7 @@ Value importwallet(const Array& params, bool fHelp)
     EnsureWalletIsUnlocked();
 
     ifstream file;
+
     file.open(params[0].get_str().c_str());
 
     if (!file.is_open())
@@ -307,9 +319,7 @@ Value importwallet(const Array& params, bool fHelp)
     }
 
     int64_t nTimeBegin = pindexBest->nTime;
-
     int64_t nFilesize = std::max((int64_t)1, (int64_t)file.tellg());
-    
     bool fGood = true;
 
     pwalletMain->ShowProgress(_("Importing..."), 0); // show progress dialog in GUI
@@ -321,13 +331,13 @@ Value importwallet(const Array& params, bool fHelp)
         std::string line;
         std::getline(file, line);
        
-        if (line.empty() || line[0] == '#')
+        if (line.empty()
+            || line[0] == '#')
         {
             continue;
         }
 
         std::vector<std::string> vstr;
-        
         boost::split(vstr, line, boost::is_any_of(" "));
         
         if (vstr.size() < 2)
@@ -336,6 +346,7 @@ Value importwallet(const Array& params, bool fHelp)
         }
         
         CPHCcoinSecret vchSecret;
+
         if (!vchSecret.SetString(vstr[0]))
         {
             continue;
@@ -349,10 +360,8 @@ Value importwallet(const Array& params, bool fHelp)
         {
             if (fDebug)
             {
-                LogPrint("rpc", "%s : key.VerifyPubKey(pubkey) == false (assert-1)\n", __FUNCTION__);
+                LogPrint("rpc", "%s : ERROR - Key.VerifyPubKey(pubkey) = false \n", __FUNCTION__);
             }
-
-            cout << __FUNCTION__ << " (assert-1)" << endl; // REMOVE AFTER UNIT TESTING COMPLETED
 
             return Value::null;
         }
@@ -363,16 +372,14 @@ Value importwallet(const Array& params, bool fHelp)
         {
             if (fDebug)
             {
-                LogPrint("rpc", "%s : Skipping import of %s (key already present)\n", __FUNCTION__, CPHCcoinAddress(keyid).ToString());
+                LogPrint("rpc", "%s : WARNING - Skipping import of %s (key already present) \n", __FUNCTION__, CCoinAddress(keyid).ToString());
             }
 
             continue;
         }
         
         int64_t nTime = DecodeDumpTime(vstr[1]);
-        
         std::string strLabel;
-        
         bool fLabel = true;
         
         for (unsigned int nStr = 2; nStr < vstr.size(); nStr++)
@@ -402,7 +409,7 @@ Value importwallet(const Array& params, bool fHelp)
         
         if (fDebug)
         {
-            LogPrint("rpc", "%s : Importing %s...\n", __FUNCTION__, CPHCcoinAddress(keyid).ToString());
+            LogPrint("rpc", "%s : NOTICE - Importing %s... \n", __FUNCTION__, CCoinAddress(keyid).ToString());
         }
 
         if (!pwalletMain->AddKey(key))
@@ -433,14 +440,15 @@ Value importwallet(const Array& params, bool fHelp)
         pindex = pindex->pprev;
     }
 
-    if (!pwalletMain->nTimeFirstKey || nTimeBegin < pwalletMain->nTimeFirstKey)
+    if (!pwalletMain->nTimeFirstKey
+        || nTimeBegin < pwalletMain->nTimeFirstKey)
     {
         pwalletMain->nTimeFirstKey = nTimeBegin;
     }
 
     if (fDebug)
     {
-        LogPrint("rpc", "%s : Rescanning last %i blocks\n", __FUNCTION__, pindexBest->nHeight - pindex->nHeight + 1);
+        LogPrint("rpc", "%s : NOTICE - Rescanning last %i blocks \n", __FUNCTION__, pindexBest->nHeight - pindex->nHeight + 1);
     }
 
     pwalletMain->ScanForWalletTransactions(pindex);
@@ -449,7 +457,7 @@ Value importwallet(const Array& params, bool fHelp)
 
     if (!fGood)
     {
-        throw JSONRPCError(RPC_WALLET_ERROR, "Error adding some keys to wallet");
+        throw JSONRPCError(RPC_WALLET_ERROR, "ERROR - Adding some keys to wallet");
     }
 
     return Value::null;
@@ -458,38 +466,40 @@ Value importwallet(const Array& params, bool fHelp)
 
 Value dumpprivkey(const Array& params, bool fHelp)
 {
-    if (fHelp || params.size() != 1)
+    if (fHelp
+        || params.size() != 1)
     {
-        throw runtime_error("dumpprivkey <PHCaddress>\n"
+        throw runtime_error("dumpprivkey <PHCaddress> \n"
                             "Reveals the private key corresponding to <PHCaddress>.");
     }
 
     EnsureWalletIsUnlocked();
 
     string strAddress = params[0].get_str();
-    CPHCcoinAddress address;
+    CCoinAddress address;
     
     if (!address.SetString(strAddress))
     {
-        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid PHC address");
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "ERROR - Invalid PHC address");
     }
     
     if (fWalletUnlockStakingOnly)
     {
-        throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Wallet is unlocked for staking only.");
+        throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "ERROR - Wallet is unlocked for staking only.");
     }
     
     CKeyID keyID;
     
     if (!address.GetKeyID(keyID))
     {
-        throw JSONRPCError(RPC_TYPE_ERROR, "Address does not refer to a key");
+        throw JSONRPCError(RPC_TYPE_ERROR, "ERROR - Address does not refer to a key");
     }
     
     CKey vchSecret;
+
     if (!pwalletMain->GetKey(keyID, vchSecret))
     {
-        throw JSONRPCError(RPC_WALLET_ERROR, "Private key for address " + strAddress + " is not known");
+        throw JSONRPCError(RPC_WALLET_ERROR, "ERROR - Private key for address " + strAddress + " is not known");
     }
     
     return CPHCcoinSecret(vchSecret).ToString();
@@ -498,20 +508,22 @@ Value dumpprivkey(const Array& params, bool fHelp)
 
 Value dumpwallet(const Array& params, bool fHelp)
 {
-    if (fHelp || params.size() != 1)
+    if (fHelp
+        || params.size() != 1)
     {
-        throw runtime_error("dumpwallet <filename>\n"
+        throw runtime_error("dumpwallet <filename> \n"
                             "Dumps all wallet keys in a human-readable format.");
     }
 
     EnsureWalletIsUnlocked();
 
     ofstream file;
+    
     file.open(params[0].get_str().c_str());
     
     if (!file.is_open())
     {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot open wallet dump file");
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "ERROR - Cannot open wallet dump file");
     }
 
     std::map<CKeyID, int64_t> mapKeyBirth;
@@ -531,41 +543,44 @@ Value dumpwallet(const Array& params, bool fHelp)
     }
     
     mapKeyBirth.clear();
+
     std::sort(vKeyBirth.begin(), vKeyBirth.end());
 
     // produce output
-    file << strprintf("# Wallet dump created by PHC %s (%s)\n", CLIENT_BUILD, CLIENT_DATE);
+    file << strprintf("# Wallet dump created by PHC %s (%s) \n", CLIENT_BUILD, CLIENT_DATE);
     file << strprintf("# * Created on %s\n", EncodeDumpTime(GetTime()));
-    file << strprintf("# * Best block at time of backup was %i (%s),\n", nBestHeight, hashBestChain.ToString());
+    file << strprintf("# * Best block at time of backup was %i (%s), \n", nBestHeight, hashBestChain.ToString());
     file << strprintf("#   mined on %s\n", EncodeDumpTime(pindexBest->nTime));
     file << "\n";
 
     for (std::vector<std::pair<int64_t, CKeyID> >::const_iterator it = vKeyBirth.begin(); it != vKeyBirth.end(); it++)
     {
         const CKeyID &keyid = it->second;
+
         std::string strTime = EncodeDumpTime(it->first);
-        std::string strAddr = CPHCcoinAddress(keyid).ToString();
+        std::string strAddr = CCoinAddress(keyid).ToString();
 
         CKey key;
+
         if (pwalletMain->GetKey(keyid, key))
         {
             if (pwalletMain->mapAddressBook.count(keyid))
             {
-                file << strprintf("%s %s label=%s # addr=%s\n", CPHCcoinSecret(key).ToString(), strTime, EncodeDumpString(pwalletMain->mapAddressBook[keyid]), strAddr);
+                file << strprintf("%s %s label=%s # addr=%s \n", CPHCcoinSecret(key).ToString(), strTime, EncodeDumpString(pwalletMain->mapAddressBook[keyid]), strAddr);
             }
             else if (setKeyPool.count(keyid))
             {
-                file << strprintf("%s %s reserve=1 # addr=%s\n", CPHCcoinSecret(key).ToString(), strTime, strAddr);
+                file << strprintf("%s %s reserve=1 # addr=%s \n", CPHCcoinSecret(key).ToString(), strTime, strAddr);
             }
             else
             {
-                file << strprintf("%s %s change=1 # addr=%s\n", CPHCcoinSecret(key).ToString(), strTime, strAddr);
+                file << strprintf("%s %s change=1 # addr=%s \n", CPHCcoinSecret(key).ToString(), strTime, strAddr);
             }
         }
     }
 
     file << "\n";
-    file << "# End of dump\n";
+    file << "# End of dump \n";
     file.close();
 
     return Value::null;

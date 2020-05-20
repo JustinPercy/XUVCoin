@@ -81,6 +81,7 @@ class CInPoint
     public:
 
         CTransaction* ptx;
+
         unsigned int n;
 
         CInPoint()
@@ -166,7 +167,6 @@ class CTxOut
     public:
 
         int64_t nValue;
-        
         int nRounds;
         
         CScript scriptPubKey;
@@ -199,6 +199,7 @@ class CTxOut
         void SetEmpty()
         {
             nValue = 0;
+            
             scriptPubKey.clear();
         }
 
@@ -224,6 +225,21 @@ class CTxOut
 
         friend bool operator==(const CTxOut& a, const CTxOut& b)
         {
+            if (a.IsNull() && b.IsNull())
+            {
+                return true;
+            }
+
+            if (a.IsNull())
+            {
+                return false;
+            }
+
+            if (b.IsNull())
+            {
+                return false;
+            }
+
             return (a.nValue       == b.nValue &&
                     a.nRounds      == b.nRounds &&
                     a.scriptPubKey == b.scriptPubKey);

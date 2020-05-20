@@ -6,7 +6,7 @@
 // Copyright (c) 2014-2015 The Dash developers
 // Copyright (c) 2015 The Crave developers
 // Copyright (c) 2017 XUVCoin developers
-// Copyright (c) 2018-2019 Profit Hunters Coin developers
+// Copyright (c) 2018-2020 Profit Hunters Coin developers
 
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php
@@ -45,7 +45,9 @@ class CDBEnv
     
         bool fDbEnvInit;
         bool fMockDb;
+
         boost::filesystem::path pathEnv;
+
         std::string strPath;
 
         void EnvShutdown();
@@ -53,14 +55,21 @@ class CDBEnv
     public:
 
         mutable CCriticalSection cs_db;
+
         DbEnv dbenv;
+
         std::map<std::string, int> mapFileUseCount;
         std::map<std::string, Db*> mapDb;
 
         CDBEnv();
         ~CDBEnv();
+
         void MakeMock();
-        bool IsMock() { return fMockDb; };
+
+        bool IsMock()
+        {
+            return fMockDb;
+        };
 
         /*
         * Verify that database file strFile is OK. If it is not,
@@ -82,11 +91,14 @@ class CDBEnv
         * for huge databases.
         */
         typedef std::pair<std::vector<unsigned char>, std::vector<unsigned char> > KeyValPair;
+
         bool Salvage(std::string strFile, bool fAggressive, std::vector<KeyValPair>& vResult);
 
         bool Open(boost::filesystem::path pathEnv_);
         void Close();
+
         void Flush(bool fShutdown);
+
         void CheckpointLSN(const std::string& strFile);
 
         void CloseDb(const std::string& strFile);
@@ -98,7 +110,8 @@ class CDBEnv
 
             int ret = dbenv.txn_begin(NULL, &ptxn, flags);
             
-            if (!ptxn || ret != 0)
+            if (!ptxn
+                || ret != 0)
             {
                 return NULL;
             }
@@ -116,11 +129,15 @@ class CDB
     protected:
 
         Db* pdb;
+
         std::string strFile;
+
         DbTxn *activeTxn;
+
         bool fReadOnly;
 
         explicit CDB(const std::string& strFilename, const char* pszMode="r+");
+
         ~CDB()
         {
             Close();
@@ -133,6 +150,7 @@ class CDB
     private:
 
         CDB(const CDB&);
+
         void operator=(const CDB&);
 
     protected:
@@ -148,6 +166,7 @@ class CDB
             CDataStream ssKey(SER_DISK, CLIENT_VERSION);
             ssKey.reserve(1000);
             ssKey << key;
+
             Dbt datKey(&ssKey[0], ssKey.size());
 
             // Read
@@ -175,7 +194,7 @@ class CDB
             }
 
             // Clear and free memory
-            memset(datValue.get_data(), 0, datValue.get_size());
+            //memset(datValue.get_data(), 0, datValue.get_size());
             
             free(datValue.get_data());
 
@@ -191,7 +210,7 @@ class CDB
 
             if (fReadOnly)
             {
-                LogPrint("db", "%s : Write called on database in read-only mode\n", __FUNCTION__);
+                LogPrint("db", "%s : ERROR - Write called on database in read-only mode \n", __FUNCTION__);
 
                 return false;
             }
@@ -200,12 +219,14 @@ class CDB
             CDataStream ssKey(SER_DISK, CLIENT_VERSION);
             ssKey.reserve(1000);
             ssKey << key;
+
             Dbt datKey(&ssKey[0], ssKey.size());
 
             // Value
             CDataStream ssValue(SER_DISK, CLIENT_VERSION);
             ssValue.reserve(10000);
             ssValue << value;
+
             Dbt datValue(&ssValue[0], ssValue.size());
 
             // Write
@@ -227,7 +248,7 @@ class CDB
 
             if (fReadOnly)
             {
-                LogPrint("db", "%s : Erase called on database in read-only mode\n", __FUNCTION__);
+                LogPrint("db", "%s : ERROR - Erase called on database in read-only mode \n", __FUNCTION__);
 
                 return false;
             }
@@ -236,6 +257,7 @@ class CDB
             CDataStream ssKey(SER_DISK, CLIENT_VERSION);
             ssKey.reserve(1000);
             ssKey << key;
+
             Dbt datKey(&ssKey[0], ssKey.size());
 
             // Erase
@@ -244,7 +266,8 @@ class CDB
             // Clear memory
             memset(datKey.get_data(), 0, datKey.get_size());
 
-            return (ret == 0 || ret == DB_NOTFOUND);
+            return (ret == 0
+                    || ret == DB_NOTFOUND);
         }
 
         template<typename K> bool Exists(const K& key)
@@ -258,6 +281,7 @@ class CDB
             CDataStream ssKey(SER_DISK, CLIENT_VERSION);
             ssKey.reserve(1000);
             ssKey << key;
+            
             Dbt datKey(&ssKey[0], ssKey.size());
 
             // Exists
@@ -293,7 +317,10 @@ class CDB
             // Read at cursor
             Dbt datKey;
 
-            if (fFlags == DB_SET || fFlags == DB_SET_RANGE || fFlags == DB_GET_BOTH || fFlags == DB_GET_BOTH_RANGE)
+            if (fFlags == DB_SET
+                || fFlags == DB_SET_RANGE
+                || fFlags == DB_GET_BOTH
+                || fFlags == DB_GET_BOTH_RANGE)
             {
                 datKey.set_data(&ssKey[0]);
                 datKey.set_size(ssKey.size());
@@ -301,7 +328,8 @@ class CDB
             
             Dbt datValue;
 
-            if (fFlags == DB_GET_BOTH || fFlags == DB_GET_BOTH_RANGE)
+            if (fFlags == DB_GET_BOTH
+                || fFlags == DB_GET_BOTH_RANGE)
             {
                 datValue.set_data(&ssValue[0]);
                 datValue.set_size(ssValue.size());
@@ -316,7 +344,8 @@ class CDB
             {
                 return ret;
             }
-            else if (datKey.get_data() == NULL || datValue.get_data() == NULL)
+            else if (datKey.get_data() == NULL
+                || datValue.get_data() == NULL)
             {
                 return 99999;
             }
@@ -325,6 +354,7 @@ class CDB
             ssKey.SetType(SER_DISK);
             ssKey.clear();
             ssKey.write((char*)datKey.get_data(), datKey.get_size());
+
             ssValue.SetType(SER_DISK);
             ssValue.clear();
             ssValue.write((char*)datValue.get_data(), datValue.get_size());
@@ -332,6 +362,7 @@ class CDB
             // Clear and free memory
             memset(datKey.get_data(), 0, datKey.get_size());
             memset(datValue.get_data(), 0, datValue.get_size());
+
             free(datKey.get_data());
             free(datValue.get_data());
 
@@ -342,7 +373,8 @@ class CDB
 
         bool TxnBegin()
         {
-            if (!pdb || activeTxn)
+            if (!pdb
+                || activeTxn)
             {
                 return false;
             }
@@ -361,7 +393,8 @@ class CDB
 
         bool TxnCommit()
         {
-            if (!pdb || !activeTxn)
+            if (!pdb 
+                || !activeTxn)
             {
                 return false;
             }
@@ -375,7 +408,8 @@ class CDB
 
         bool TxnAbort()
         {
-            if (!pdb || !activeTxn)
+            if (!pdb
+                || !activeTxn)
             {
                 return false;
             }

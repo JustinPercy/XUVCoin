@@ -7,7 +7,7 @@
 // Copyright (c) 2014-2015 The Dash developers
 // Copyright (c) 2015 The Crave developers
 // Copyright (c) 2017 XUVCoin developers
-// Copyright (c) 2018-2019 Profit Hunters Coin developers
+// Copyright (c) 2018-2020 Profit Hunters Coin developers
 
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php
@@ -83,8 +83,6 @@
 #include <QTextDocument>
 #include <QInputDialog>
 
-#include <iostream>
-
 extern bool fOnlyTor;
 
 extern CWallet* pwalletMain;
@@ -121,6 +119,13 @@ BitcoinGUI::BitcoinGUI(QWidget *parent) :
 	if (!fUseBlackTheme)
 	{
 		// NORMAL THEME
+
+		frameBlocks->setStyleSheet("QWidget"
+							"{"
+							"	background-color: rgb(196, 226, 91);"
+							"	margin-bottom: 5px;"
+							"}"
+							);
 
 		qApp->setStyleSheet("QMainWindow"
 							"{"
@@ -183,14 +188,30 @@ BitcoinGUI::BitcoinGUI(QWidget *parent) :
 							"{"
 							"	background-color: rgb(80, 80, 80);"
 							"}"
-							);
 
-		frameBlocks->setStyleSheet("QWidget"
-									"{"
-									"	background: none;"
-									"	margin-bottom: 5px;"
-									"}"
-									);
+							"QFrame#frameCoinControl"
+							"{"
+							"	background-color: rgb(196, 226, 91);"
+							"}"
+
+							"QDialog"
+							"{"
+							"	background-color: rgb(196, 226, 91);"
+							"}"
+
+							"QGridLayout"
+							"{"
+							"	color: #000000;"
+							"	background-color: rgb(196, 226, 91);"
+							"}"
+
+							"QHBoxLayout"
+							"{"
+							"	color: #000000;"
+							"	background-color: rgb(196, 226, 91);"
+							"}"
+					
+							);
 
 		// Override style sheet for progress bar for styles that have a segmented progress bar,
 		// as they make the text unreadable (workaround for issue #1071)
@@ -229,6 +250,13 @@ BitcoinGUI::BitcoinGUI(QWidget *parent) :
 	else
 	{
 		// DARK THEME
+		frameBlocks->setStyleSheet("QWidget"
+									"{"
+									"	background: none;"
+									"	margin-bottom: 5px;"
+									"	color: #A4D300;"
+									"}"
+								);
 
 		qApp->setStyleSheet("QMainWindow"
 							"{"
@@ -240,29 +268,203 @@ BitcoinGUI::BitcoinGUI(QWidget *parent) :
 
 							"QPushButton"
 							"{"
-							"	color:#000000;"
-							"	border-radius:5px;"
-							"	border:solid 1px #E5D738;"
-							"	background:#E5D738;"
-							"	padding:3px 30px;"
+							"	color: #000000;"
+							"	border-radius: 5px;"
+							"	border: solid 1px #E5D738;"
+							"	background-color: #A4D300;"
+							"	padding: 3px 30px;"
 							"}"
 
 							"QPushButton:hover"
 							"{"
-							"	background-color: #E5D738;"
 							"	color: #000000;"
-							"}"
-
-							"QPushButton:focus"
-							"{"
-							"	border:none;"
-							"	outline:none;"
+							"	background-color: #FFF700;"
 							"}"
 
 							"QPushButton:pressed"
 							"{"
-							"	background-color: #E5D738;"
 							"	color: #000000;"
+							"	background-color: rgb(80, 80, 80);"
+							"}"
+
+							"QPushButton#runAutoDenom"
+							"{"
+							"	color: #000000;"
+							"	background-color: #A4D300;"
+							"}"
+
+							"QPushButton#runAutoDenom:hover"
+							"{"
+							"	color: #000000;"
+							"	background-color: #FFF700;"
+							"}"
+
+							"QPushButton#runAutoDenom:pressed"
+							"{"
+							"	color: #000000;"
+							"	background-color: rgb(80, 80, 80);"
+							"}"
+
+							"QPushButton#darksendAuto"
+							"{"
+							"	color: #000000;"
+							"	background-color: #A4D300;"
+							"}"
+
+							"QPushButton#darksendAuto:hover"
+							"{"
+							"	color: #000000;"
+							"	background-color: #FFF700;"
+							"}"
+
+							"QPushButton#darksendAuto:pressed"
+							"{"
+							"	color: #000000;"
+							"	background-color: rgb(80, 80, 80);"
+							"}"
+
+							"QPushButton#toggleDarksend"
+							"{"
+							"	color: #000000;"
+							"	background-color: #A4D300;"
+							"}"
+
+							"QPushButton#toggleDarksend:hover"
+							"{"
+							"	color: #000000;"
+							"	background-color: #FFF700;"
+							"}"
+
+							"QPushButton#toggleDarksend:pressed"
+							"{"
+							"	color: #000000;"
+							"	background-color: rgb(80, 80, 80);"
+							"}"
+
+							"QPushButton#darksendReset"
+							"{"
+							"	color: #000000;"
+							"	background-color: #A4D300;"
+							"}"
+
+							"QPushButton#darksendReset:hover"
+							"{"
+							"	color: #000000;"
+							"	background-color: #FFF700;"
+							"}"
+
+							"QPushButton#darksendReset:pressed"
+							"{"
+							"	color: #000000;"
+							"	background-color: rgb(80, 80, 80);"
+							"}"
+
+							"QPushButton#openDebugLogfileButton"
+							"{"
+							"	color: #000000;"
+							"	background-color: #A4D300;"
+							"}"
+
+							"QPushButton#openDebugLogfileButton:hover"
+							"{"
+							"	color: #000000;"
+							"	background-color: #FFF700;"
+							"}"
+
+							"QPushButton#openDebugLogfileButton:pressed"
+							"{"
+							"	color: #000000;"
+							"	background-color: rgb(80, 80, 80);"
+							"}"
+
+							"QPushButton#openDebugLogfileButton"
+							"{"
+							"	color: #000000;"
+							"	background-color: #A4D300;"
+							"}"
+
+							"QPushButton#openDebugLogfileButton:hover"
+							"{"
+							"	color: #000000;"
+							"	background-color: #FFF700;"
+							"}"
+
+							"QPushButton#openDebugLogfileButton:pressed"
+							"{"
+							"	color: #000000;"
+							"	background-color: rgb(80, 80, 80);"
+							"}"
+
+							"QPushButton#openConfigfileButton"
+							"{"
+							"	color: #000000;"
+							"	background-color: #A4D300;"
+							"}"
+
+							"QPushButton#openConfigfileButton:hover"
+							"{"
+							"	color: #000000;"
+							"	background-color: #FFF700;"
+							"}"
+
+							"QPushButton#openConfigfileButton:pressed"
+							"{"
+							"	color: #000000;"
+							"	background-color: rgb(80, 80, 80);"
+							"}"
+
+							"QPushButton#openMNConfigfileButton"
+							"{"
+							"	color: #000000;"
+							"	background-color: #A4D300;"
+							"}"
+
+							"QPushButton#openMNConfigfileButton:hover"
+							"{"
+							"	color: #000000;"
+							"	background-color: #FFF700;"
+							"}"
+
+							"QPushButton#openMNConfigfileButton:pressed"
+							"{"
+							"	color: #000000;"
+							"	background-color: rgb(80, 80, 80);"
+							"}"
+
+							"QPushButton#showCLOptionsButton"
+							"{"
+							"	color: #000000;"
+							"	background-color: #A4D300;"
+							"}"
+
+							"QPushButton#showCLOptionsButton:hover"
+							"{"
+							"	color: #000000;"
+							"	background-color: #FFF700;"
+							"}"
+
+							"QPushButton#showCLOptionsButton:pressed"
+							"{"
+							"	color: #000000;"
+							"	background-color: rgb(80, 80, 80);"
+							"}"
+
+							"QPushButton#btnClearTrafficGraph"
+							"{"
+							"	color: #000000;"
+							"	background-color: #A4D300;"
+							"}"
+
+							"QPushButton#btnClearTrafficGraph:hover"
+							"{"
+							"	color: #000000;"
+							"	background-color: #FFF700;"
+							"}"
+
+							"QPushButton#btnClearTrafficGraph:pressed"
+							"{"
+							"	color: #000000;"
+							"	background-color: rgb(80, 80, 80);"
 							"}"
 
 							"QMenuBar"
@@ -302,7 +504,84 @@ BitcoinGUI::BitcoinGUI(QWidget *parent) :
 							"	background-color: #A4D300;"
 							"}"
 
-							"QFrame"
+							"QFrame#SendCoinsEntry"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: #000000;"
+							"}"
+
+							"QTableView"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: #000000;"
+							"}"
+
+							"QTextEdit#messagesWidget"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: #000000;"
+							"}"
+
+							"QTabWidget::tab::selected"
+							"{"
+							"	color: #000000;"
+							"	background-color: #A4D300;"
+							"}"
+
+							"QTabWidget"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: #000000;"
+							"}"
+
+							"QWidget::tab::selected"
+							"{"
+							"	color: #000000;"
+							"	background-color: #A4D300;"
+							"}"
+
+							"QWidget"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: #000000;"
+							"}"
+
+							"QWidget#RPCConsole"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: #000000;"
+							"}"
+
+							"QWidget#tab_info"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: #000000;"
+							"}"
+
+							"QWidget#tab_console"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: #000000;"
+							"}"
+
+							"QWidget#tab_nettraffic"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: #000000;"
+							"}"
+
+							"QWidget#tab_peers"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: #000000;"
+							"}"
+
+							"QWidget#scrollAreaWidgetContents"
+							"{"
+							"	background-color: #000000;"
+							"}"
+
+							"QWidget#MasternodeManager"
 							"{"
 							"	color: #A4D300;"
 							"	background-color: #000000;"
@@ -374,25 +653,121 @@ BitcoinGUI::BitcoinGUI(QWidget *parent) :
 							"	color: #000000;"
 							"}"
 
-							"QWidget"
-							"{"
-							"	alternate-background-color: #000000;"
-							"}"
-
 							"QRadioButton"
 							"{"
 							"	border: none;"
 							"	color: #A4D300;"
 							"}"
+
+							"QFrame#frameCoinControl"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: rgb(0, 0, 0);"
+							"}"
+			
+							"QGridLayout"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: rgb(0, 0, 0);"
+							"}"
+
+							"QHBoxLayout"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: rgb(0, 0, 0);"
+							"}"
+
+							"QWidget#tab"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: rgb(0, 0, 0);"
+							"}"
+
+							"QWidget#tab_2"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: rgb(0, 0, 0);"
+							"}"
+
+							"QFormLayout#formLayoutCoinControl2"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: rgb(0, 0, 0);"
+							"}"
+
+							"CoinControlTreeWidget"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: rgb(0, 0, 0);"
+							"	alternate-background-color: rgb(0, 0, 0);"
+							"}"
+
+							"QTableView"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: rgb(0, 0, 0);"
+							"	alternate-background-color: rgb(0, 0, 0);"
+							"}"
+
+							"QDialog#OptionsDialog"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: rgb(0, 0, 0);"
+							"	alternate-background-color: rgb(0, 0, 0);"
+							"}"
+
+							"QTabWidget"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: rgb(0, 0, 0);"
+							"	alternate-background-color: rgb(0, 0, 0);"
+							"}"
+
+							"QWidget#tabMain"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: rgb(0, 0, 0);"
+							"	alternate-background-color: rgb(0, 0, 0);"
+							"}"
+
+							"QWidget#tabNetwork"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: rgb(0, 0, 0);"
+							"	alternate-background-color: rgb(0, 0, 0);"
+							"}"
+
+							"QWidget#tabWindow"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: rgb(0, 0, 0);"
+							"	alternate-background-color: rgb(0, 0, 0);"
+							"}"
+
+							"QWidget#tabDisplay"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: rgb(0, 0, 0);"
+							"	alternate-background-color: rgb(0, 0, 0);"
+							"}"
+
+							"QWidget#tabSignMessage"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: rgb(0, 0, 0);"
+							"	alternate-background-color: rgb(0, 0, 0);"
+							"}"
+
+							"QWidget#tabVerifyMessage"
+							"{"
+							"	color: #A4D300;"
+							"	background-color: rgb(0, 0, 0);"
+							"	alternate-background-color: rgb(0, 0, 0);"
+							"}"
+
 						);
 
-		frameBlocks->setStyleSheet("QWidget"
-									"{"
-									"	background: none;"
-									"	margin-bottom: 5px;"
-									"	color: #A4D300;"
-									"}"
-								);
+
 
 		// Override style sheet for progress bar for styles that have a segmented progress bar,
 		// as they make the text unreadable (workaround for issue #1071)
@@ -593,8 +968,11 @@ BitcoinGUI::BitcoinGUI(QWidget *parent) :
 	connect(openConfigFileAction, SIGNAL(triggered()), rpcConsole, SLOT(on_openPHCConfigfileButton_clicked()));
 	connect(openMasternodeConfigFileAction, SIGNAL(triggered()), rpcConsole, SLOT(on_openMNConfigfileButton_clicked()));
 	connect(openDebugFileAction, SIGNAL(triggered()), rpcConsole, SLOT(on_openDebugLogfileButton_clicked()));
+	
 	connect(setgenerateTRUEAction, SIGNAL(triggered()), rpcConsole, SLOT(setgenerateTRUE()));
 	connect(setgenerateFALSEAction, SIGNAL(triggered()), rpcConsole, SLOT(setgenerateFALSE()));
+	connect(setstakingTRUEAction, SIGNAL(triggered()), rpcConsole, SLOT(setstakingTRUE()));
+	connect(setstakingFALSEAction, SIGNAL(triggered()), rpcConsole, SLOT(setstakingFALSE()));
 
 	// clicking on automatic backups shows details
 	connect(showBackupsAction, SIGNAL(triggered()), rpcConsole, SLOT(showBackups()));
@@ -802,6 +1180,12 @@ void BitcoinGUI::createActions()
 	setgenerateFALSEAction = new QAction(QIcon(":/icons/quit"), tr("&Stop"), this);
 	setgenerateFALSEAction->setToolTip(tr("Stop Internal CPU Miner"));
 
+	setstakingTRUEAction = new QAction(QIcon(":/icons/tx_staked"), tr("&Start"), this);
+	setstakingTRUEAction->setToolTip(tr("Start Staking Thread"));
+
+	setstakingFALSEAction = new QAction(QIcon(":/icons/quit"), tr("&Stop"), this);
+	setstakingFALSEAction->setToolTip(tr("Stop Staking Thread"));
+
 	connect(quitAction, SIGNAL(triggered()), qApp, SLOT(quit()));
 	connect(aboutAction, SIGNAL(triggered()), this, SLOT(aboutClicked()));
 	connect(aboutQtAction, SIGNAL(triggered()), qApp, SLOT(aboutQt()));
@@ -869,6 +1253,14 @@ void BitcoinGUI::createMenuBar()
 	wallet->addAction(importPrivateKeyAction);
 	wallet->addAction(exportAction);
 
+	QMenu *staking = appMenuBar->addMenu(tr("&Staking"));
+	staking->addAction(setstakingTRUEAction);
+	staking->addAction(setstakingFALSEAction);
+
+	QMenu *mining = appMenuBar->addMenu(tr("&Mining"));
+	mining->addAction(setgenerateTRUEAction);
+	mining->addAction(setgenerateFALSEAction);
+	//mining->addAction(setgenproclimitAction);
 
 	QMenu *tools = appMenuBar->addMenu(tr("&Tools"));
 	tools->addAction(optionsAction);
@@ -882,11 +1274,6 @@ void BitcoinGUI::createMenuBar()
 	tools->addAction(openConfigFileAction);
 	tools->addAction(openMasternodeConfigFileAction);
 	tools->addAction(openDebugFileAction);
-
-	QMenu *mining = appMenuBar->addMenu(tr("&Mining"));
-	mining->addAction(setgenerateTRUEAction);
-	mining->addAction(setgenerateFALSEAction);
-	//mining->addAction(setgenproclimitAction);
 
 	QMenu *help = appMenuBar->addMenu(tr("&Help"));
 	help->addAction(aboutAction);
@@ -1919,9 +2306,10 @@ void BitcoinGUI::updateStakingIcon()
 {
 	updateWeight();
 
+	uint64_t nWeight = this->nWeight;
+
 	if (nLastCoinStakeSearchInterval && nWeight)
 	{
-		uint64_t nWeight = this->nWeight;
 		uint64_t nNetworkWeight = GetPoSKernelPS();
 		
 		unsigned nEstimateTime = 0;
@@ -1957,25 +2345,45 @@ void BitcoinGUI::updateStakingIcon()
 	{
 		labelStakingIcon->setPixmap(QIcon(fUseBlackTheme ? ":/icons/black/staking_off" : ":/icons/staking_off").pixmap(STATUSBAR_ICONSIZE, STATUSBAR_ICONSIZE));
 		
-		if (pwalletMain && pwalletMain->IsLocked())
+		if (pwalletMain && pwalletMain->IsLocked() == true)
 		{
 			labelStakingIcon->setToolTip(tr("Not staking because wallet is locked"));
 		}
-		else if (vNodes.empty())
+        else if (vNodes.empty() == true)
 		{
 			labelStakingIcon->setToolTip(tr("Not staking because wallet is offline"));
 		}
-		else if (IsInitialBlockDownload())
+		else if (vNodes.size() < 8)
+		{
+			labelStakingIcon->setToolTip(tr("Not staking because you need minimum 8 peers"));
+		}
+		else if (IsInitialBlockDownload() == true)
 		{
 			labelStakingIcon->setToolTip(tr("Not staking because wallet is syncing"));
+		}
+		else if (pindexBest->GetBlockTime() < GetTime() - 10 * 60)
+		{
+			labelStakingIcon->setToolTip(tr("Not staking, waiting for full syncronization"));
 		}
 		else if (!nWeight)
 		{
 			labelStakingIcon->setToolTip(tr("Not staking because you don't have mature coins"));
 		}
+        else if (nLastCoinStakeSearchInterval == 0 && GetBoolArg("-staking", true) == true && pwalletMain->GetStake() > 0)
+		{
+			labelStakingIcon->setToolTip(tr("Not staking, waiting to unlock coins..."));
+		}
+        else if (GetBoolArg("-staking", true) == true && nLastCoinStakeSearchInterval == 0)
+		{
+			labelStakingIcon->setToolTip(tr("Not staking, waiting to sign a block."));
+		}
+		else if (GetBoolArg("-staking", true) == true)
+		{
+			labelStakingIcon->setToolTip(tr("Not staking, unknown error."));
+		}
 		else
 		{
-			labelStakingIcon->setToolTip(tr("Not staking"));
+			labelStakingIcon->setToolTip(tr("Staking disabled."));
 		}
 	}
 }

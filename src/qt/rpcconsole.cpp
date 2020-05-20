@@ -24,6 +24,7 @@
 #include "chainparams.h"
 #include "util.h"
 #include "init.h"
+#include "miner.h"
 
 #include "rpcserver.h"
 #include "rpcclient.h"
@@ -39,22 +40,27 @@
 
 #include <openssl/crypto.h>
 
+
 // TODO: add a scrollback limit, as there is currently none
 // TODO: make it possible to filter out categories (esp debug messages when implemented)
 // TODO: receive errors and debug messages through ClientModel
 
+
 using namespace CBan;
+
 
 const int CONSOLE_HISTORY = 50;
 const QSize ICON_SIZE(24, 24);
 
 const int INITIAL_TRAFFIC_GRAPH_MINS = 30;
 
+
 const struct
 {
     const char *url;
     const char *source;
 }
+
 
 ICON_MAPPING[] =
 {
@@ -257,6 +263,7 @@ bool parseCommandLine(std::vector<std::string> &args, const std::string &strComm
 void RPCExecutor::request(const QString &command)
 {
     std::vector<std::string> args;
+
     if(!parseCommandLine(args, command.toStdString()))
     {
         emit reply(RPCConsole::CMD_ERROR, QString("Parse error: unbalanced ' or \""));
@@ -274,9 +281,7 @@ void RPCExecutor::request(const QString &command)
         std::string strPrint;
         // Convert argument list to JSON objects in method-dependent way,
         // and pass it along with the method name to the dispatcher.
-        json_spirit::Value result = tableRPC.execute(
-            args[0],
-            RPCConvertValues(args[0], std::vector<std::string>(args.begin() + 1, args.end())));
+        json_spirit::Value result = tableRPC.execute(args[0], RPCConvertValues(args[0], std::vector<std::string>(args.begin() + 1, args.end())));
 
         // Format result reply
         if (result.type() == json_spirit::null_type)
@@ -301,6 +306,7 @@ void RPCExecutor::request(const QString &command)
             int code = find_value(objError, "code").get_int();
 
             std::string message = find_value(objError, "message").get_str();
+
             emit reply(RPCConsole::CMD_ERROR, QString::fromStdString(message) + " (code " + QString::number(code) + ")");
         }
         catch(std::runtime_error &) // raised when converting to invalid type, i.e. missing code or message
@@ -321,7 +327,7 @@ RPCConsole::RPCConsole(QWidget *parent) : QWidget(parent), ui(new Ui::RPCConsole
 
 #ifndef Q_OS_MAC
     ui->openDebugLogfileButton->setIcon(QIcon(":/icons/export"));
-    ui->openPHCConfigfileButton->setIcon(QIcon(":/icons/export"));
+    ui->openConfigfileButton->setIcon(QIcon(":/icons/export"));
     ui->openMNConfigfileButton->setIcon(QIcon(":/icons/export"));
     ui->showCLOptionsButton->setIcon(QIcon(":/icons/options"));
 #endif
@@ -421,6 +427,7 @@ bool RPCConsole::eventFilter(QObject* obj, QEvent *event)
                 if(obj == ui->messagesWidget && ((!mod && !keyevt->text().isEmpty() && key != Qt::Key_Tab) || ((mod & Qt::ControlModifier) && key == Qt::Key_V) || ((mod & Qt::ShiftModifier) && key == Qt::Key_Insert)))
                 {
                     ui->lineEdit->setFocus();
+
                     QApplication::postEvent(ui->lineEdit, new QKeyEvent(*keyevt));
 
                     return true;
@@ -541,6 +548,7 @@ void RPCConsole::setClientModel(ClientModel *model)
         ui->startupTime->setText(model->formatClientStartupTime());
 
         setNumConnections(model->getNumConnections());
+
         ui->isTestNet->setChecked(model->isTestNet());
 
         // Set up autocomplete and attach
@@ -681,6 +689,7 @@ void RPCConsole::on_lineEdit_returnPressed()
     if(!cmd.isEmpty())
     {
         message(CMD_REQUEST, cmd);
+
         emit cmdRequest(cmd);
         
         // Remove command, if already in history
@@ -730,6 +739,7 @@ void RPCConsole::browseHistory(int offset)
 void RPCConsole::startExecutor()
 {
     QThread* thread = new QThread;
+
     RPCExecutor *executor = new RPCExecutor();
     executor->moveToThread(thread);
 
@@ -769,9 +779,9 @@ void RPCConsole::on_openDebugLogfileButton_clicked()
     GUIUtil::openDebugLogfile();
 }
 
-void RPCConsole::on_openPHCConfigfileButton_clicked()
+void RPCConsole::on_openConfigfileButton_clicked()
 {
-    GUIUtil::openPHCConfigfile();
+    GUIUtil::openConfigfile();
 }
 
 void RPCConsole::on_openMNConfigfileButton_clicked()
@@ -795,7 +805,7 @@ void RPCConsole::on_showCLOptionsButton_clicked()
 
 void RPCConsole::setgenerateTRUE()
 {
-    GeneratePoWcoins(true, pwalletMain, false);
+    GeneratePoWcoins(true, pwalletMain);
 
     int nThreads = GetArg("-genproclimit", -2);
 
@@ -818,9 +828,23 @@ void RPCConsole::setgenerateTRUE()
 
 void RPCConsole::setgenerateFALSE()
 {
-    GeneratePoWcoins(false, pwalletMain, false);
+    GeneratePoWcoins(false, pwalletMain);
 
 	QMessageBox::warning(this, tr("Internal PoW Miner"), tr("Stopped!"));
+}
+
+void RPCConsole::setstakingTRUE()
+{
+    fStaking = true;
+	
+    QMessageBox::warning(this, tr("Staking threads started"), tr("Started!"));
+}
+
+void RPCConsole::setstakingFALSE()
+{
+    fStaking = false;
+
+	QMessageBox::warning(this, tr("Staking threads stopped"), tr("Stopped!"));
 }
 
 void RPCConsole::on_sldGraphRange_valueChanged(int value)
@@ -911,7 +935,9 @@ void RPCConsole::showBackups()
 
 void RPCConsole::peerSelected(const QItemSelection &selected, const QItemSelection &deselected)
 {
-    if (!clientModel || !clientModel->getPeerTableModel() || selected.indexes().isEmpty())
+    if (!clientModel
+        || !clientModel->getPeerTableModel()
+        || selected.indexes().isEmpty())
     {
         return;
     }
@@ -1034,7 +1060,6 @@ void RPCConsole::updateNodeDetail(const CNodeCombinedStats *stats)
     {
         // Ban score is init to 0
         ui->peerBanScore->setText(QString("%1").arg(stats->nodeStateStats.nMisbehavior));
-
     }
     else
     {
@@ -1053,7 +1078,8 @@ void RPCConsole::showEvent(QShowEvent *event)
 {
     QWidget::showEvent(event);
 
-    if (!clientModel || !clientModel->getPeerTableModel())
+    if (!clientModel
+        || !clientModel->getPeerTableModel())
     {
         return;
     }

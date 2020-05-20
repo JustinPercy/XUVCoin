@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2012 The Bitcoin developers
 // Copyright (c) 2012 Pieter Wuille
-// Copyright (c) 2018-2019 Profit Hunters Coin developers
+// Copyright (c) 2018-2020 Profit Hunters Coin developers
 
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php
@@ -53,8 +53,10 @@ class CAddrInfo : public CAddress
 
     public:
 
-        IMPLEMENT_SERIALIZE(
+        IMPLEMENT_SERIALIZE
+        (
             CAddress* pthis = (CAddress*)(this);
+
             READWRITE(*pthis);
             READWRITE(source);
             READWRITE(nLastSuccess);
@@ -255,7 +257,8 @@ class CAddrMan
     public:
 
         IMPLEMENT_SERIALIZE
-        (({
+        ((
+        {
             // serialized format:
             // * version byte (currently 0)
             // * nKey
@@ -278,7 +281,9 @@ class CAddrMan
             // changes to the ADDRMAN_ parameters without breaking the on-disk structure.
             {
                 LOCK(cs);
+
                 unsigned char nVersion = 0;
+
                 READWRITE(nVersion);
                 READWRITE(nKey);
                 READWRITE(nNew);
@@ -305,6 +310,7 @@ class CAddrMan
 
                         mapUnkIds[(*it).first] = nIds;
                         CAddrInfo &info = (*it).second;
+
                         if (info.nRefCount)
                         {
                             READWRITE(info);
@@ -314,6 +320,7 @@ class CAddrMan
                     }
 
                     nIds = 0;
+
                     for (std::map<int, CAddrInfo>::iterator it = am->mapInfo.begin(); it != am->mapInfo.end(); it++)
                     {
                         if (nIds == nTried)
@@ -322,6 +329,7 @@ class CAddrMan
                         }
 
                         CAddrInfo &info = (*it).second;
+
                         if (info.fInTried)
                         {
                             READWRITE(info);
@@ -336,6 +344,7 @@ class CAddrMan
                         int nSize = vNew.size();
 
                         READWRITE(nSize);
+
                         for (std::set<int>::iterator it2 = vNew.begin(); it2 != vNew.end(); it2++)
                         {
                             int nIndex = mapUnkIds[*it2];
@@ -421,7 +430,8 @@ class CAddrMan
                             
                             CAddrInfo &info = am->mapInfo[nIndex];
                             
-                            if (nUBuckets == ADDRMAN_NEW_BUCKET_COUNT && info.nRefCount < ADDRMAN_NEW_BUCKETS_PER_ADDRESS)
+                            if (nUBuckets == ADDRMAN_NEW_BUCKET_COUNT
+                                && info.nRefCount < ADDRMAN_NEW_BUCKETS_PER_ADDRESS)
                             {
                                 info.nRefCount++;
                                 vNew.insert(nIndex);
@@ -430,11 +440,13 @@ class CAddrMan
                     }
                 }
             }
-        });)
+        }
+        );)
 
         CAddrMan() : vRandom(0), vvTried(ADDRMAN_TRIED_BUCKET_COUNT, std::vector<int>(0)), vvNew(ADDRMAN_NEW_BUCKET_COUNT, std::set<int>())
         {
             nKey.resize(32);
+
             GetRandBytes(&nKey[0], 32);
 
             nIdCount = 0;
@@ -459,16 +471,32 @@ class CAddrMan
                 
                 int err;
 
-                if ((err=Check_()))
+                if ((err = Check_()))
                 {
                     if (fDebug)
                     {
-                        LogPrint("addrman", "%s : ADDRMAN CONSISTENCY CHECK FAILED!!! err=%i\n", __FUNCTION__, err);
+                        LogPrint("addrman", "%s : ERROR - ADDRMAN CONSISTENCY CHECK FAILED!!! err=%i \n", __FUNCTION__, err);
                     }
                 }
             }
             // Global Namespace End
     #endif
+        }
+
+        // Find a single address.
+        bool Find(const CAddress &addr)
+        {
+            int nId;
+            CAddrInfo *pinfo = Find(addr, &nId);
+
+            // not found
+            if (!pinfo)
+            {
+                return false;
+            }
+
+            // found
+            return true;
         }
 
         // Add a single address.
@@ -479,8 +507,11 @@ class CAddrMan
             // Global Namespace Start
             {
                 LOCK(cs);
+
                 Check();
+
                 fRet |= Add_(addr, source, nTimePenalty);
+
                 Check();
             }
             // Global Namespace End
@@ -489,7 +520,7 @@ class CAddrMan
             {
                 if (fDebug)
                 {
-                    LogPrint("addrman", "%s : Added %s from %s: %i tried, %i new\n", __FUNCTION__, addr.ToStringIPPort(), source.ToString(), nTried, nNew);
+                    LogPrint("addrman", "%s : ERROR - Added %s from %s: %i tried, %i new \n", __FUNCTION__, addr.ToStringIPPort(), source.ToString(), nTried, nNew);
                 }
             }
 
@@ -533,8 +564,11 @@ class CAddrMan
             // Global Namespace Start
             {
                 LOCK(cs);
+
                 Check();
+
                 Good_(addr, nTime);
+
                 Check();
             }
             // Global Namespace End
@@ -546,8 +580,11 @@ class CAddrMan
             // Global Namespace Start
             {
                 LOCK(cs);
+
                 Check();
+
                 Attempt_(addr, nTime);
+
                 Check();
             }
             // Global Namespace End
@@ -562,8 +599,11 @@ class CAddrMan
             // Global Namespace Start
             {
                 LOCK(cs);
+
                 Check();
+
                 addrRet = Select_(nUnkBias);
+
                 Check();
             }
             // Global Namespace End
@@ -575,11 +615,13 @@ class CAddrMan
         std::vector<CAddress> GetAddr()
         {
             Check();
+
             std::vector<CAddress> vAddr;
 
             // Global Namespace Start
             {
                 LOCK(cs);
+
                 GetAddr_(vAddr);
             }
             // Global Namespace End
@@ -595,8 +637,11 @@ class CAddrMan
             // Global Namespace Start
             {
                 LOCK(cs);
+
                 Check();
+
                 Connected_(addr, nTime);
+                
                 Check();
             }
             // Global Namespace End

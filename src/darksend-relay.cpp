@@ -6,7 +6,7 @@
 // Copyright (c) 2014-2015 The Dash developers
 // Copyright (c) 2015 The Crave developers
 // Copyright (c) 2017 XUVCoin developers
-// Copyright (c) 2018-2019 Profit Hunters Coin developers
+// Copyright (c) 2018-2020 Profit Hunters Coin developers
 
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php
@@ -52,17 +52,19 @@ std::string CDarkSendRelay::ToString()
 
 bool CDarkSendRelay::Sign(std::string strSharedKey)
 {
-    std::string strMessage = in.ToString() + out.ToString();
+    std::string strMessage = in.ToString()
+                            + out.ToString();
 
     CKey key2;
     CPubKey pubkey2;
+    
     std::string errorMessage = "";
 
     if(!darkSendSigner.SetKey(strSharedKey, errorMessage, key2, pubkey2))
     {
         if (fDebug)
         {
-            LogPrint("darksend", "%s :  ERROR: Invalid shared key: '%s'\n", __FUNCTION__, errorMessage.c_str());
+            LogPrint("darksend", "%s : ERROR - Invalid shared key: '%s' \n", __FUNCTION__, errorMessage.c_str());
         }
 
         return false;
@@ -72,7 +74,7 @@ bool CDarkSendRelay::Sign(std::string strSharedKey)
     {
         if (fDebug)
         {
-            LogPrint("darksend", "%s :  Sign message failed\n", __FUNCTION__);
+            LogPrint("darksend", "%s : ERROR - Sign message failed \n", __FUNCTION__);
         }
 
         return false;
@@ -82,7 +84,7 @@ bool CDarkSendRelay::Sign(std::string strSharedKey)
     {
         if (fDebug)
         {
-            LogPrint("darksend", "%s :  Verify message failed\n", __FUNCTION__);
+            LogPrint("darksend", "%s : ERROR - Verify message failed \n", __FUNCTION__);
         }
 
         return false;
@@ -94,17 +96,19 @@ bool CDarkSendRelay::Sign(std::string strSharedKey)
 
 bool CDarkSendRelay::VerifyMessage(std::string strSharedKey)
 {
-    std::string strMessage = in.ToString() + out.ToString();
+    std::string strMessage = in.ToString()
+                            + out.ToString();
 
     CKey key2;
     CPubKey pubkey2;
+
     std::string errorMessage = "";
 
     if(!darkSendSigner.SetKey(strSharedKey, errorMessage, key2, pubkey2))
     {
         if (fDebug)
         {
-            LogPrint("darksend", "%s :  ERROR: Invalid shared key: '%s'\n", __FUNCTION__, errorMessage.c_str());
+            LogPrint("darksend", "%s : ERROR - Invalid shared key: '%s' \n", __FUNCTION__, errorMessage.c_str());
         }
 
         return false;
@@ -114,7 +118,7 @@ bool CDarkSendRelay::VerifyMessage(std::string strSharedKey)
     {
         if (fDebug)
         {
-            LogPrint("darksend", "%s :  Verify message failed\n", __FUNCTION__);
+            LogPrint("darksend", "%s : ERROR - Verify message failed \n", __FUNCTION__);
         }
         
         return false;
@@ -150,7 +154,8 @@ void CDarkSendRelay::RelayThroughNode(int nRank)
 
     if(pmn != NULL)
     {
-        //printf("RelayThroughNode %s\n", pmn->addr.ToString().c_str());
+        //printf("RelayThroughNode %s\n", pmn->addr.ToStringIPPort().c_str());
+
         if(ConnectNode((CAddress)pmn->addr, NULL, true))
         {
             //printf("Connected\n");
@@ -167,6 +172,9 @@ void CDarkSendRelay::RelayThroughNode(int nRank)
     }
     else
     {
-        //printf("RelayThroughNode NULL\n");
+        if (fDebug)
+        {
+            LogPrint("darksend", "%s : ERROR - RelayThroughNode NULL \n", __FUNCTION__);
+        }
     }
 }

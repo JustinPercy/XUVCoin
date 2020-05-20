@@ -110,6 +110,8 @@ TransactionView::TransactionView(QWidget *parent) : QWidget(parent), model(0), t
     typeWidget->addItem(tr("Darksend Collateral Payment"), TransactionFilterProxy::TYPE(TransactionRecord::DarksendCollateralPayment));
     typeWidget->addItem(tr("To yourself"), TransactionFilterProxy::TYPE(TransactionRecord::SendToSelf));
     typeWidget->addItem(tr("Mined"), TransactionFilterProxy::TYPE(TransactionRecord::Generated));
+    typeWidget->addItem(tr("Staked"), TransactionFilterProxy::TYPE(TransactionRecord::Staked));
+    typeWidget->addItem(tr("Reward"), TransactionFilterProxy::TYPE(TransactionRecord::Reward));
     typeWidget->addItem(tr("Other"), TransactionFilterProxy::TYPE(TransactionRecord::Other));
     typeWidget->setCurrentIndex(settings.value("transactionType").toInt());
 
@@ -476,15 +478,18 @@ void TransactionView::editLabel()
     }
 
     QModelIndexList selection = transactionView->selectionModel()->selectedRows();
+
     if(!selection.isEmpty())
     {
         AddressTableModel *addressBook = model->getAddressTableModel();
+
         if(!addressBook)
         {
             return;
         }
 
         QString address = selection.at(0).data(TransactionTableModel::AddressRole).toString();
+
         if(address.isEmpty())
         {
             // If this transaction has no associated address, exit
@@ -494,6 +499,7 @@ void TransactionView::editLabel()
         // Is address in address book? Address book can miss address when a transaction is
         // sent from outside the UI.
         int idx = addressBook->lookupAddress(address);
+
         if(idx != -1)
         {
             // Edit sending / receiving address
@@ -528,6 +534,7 @@ void TransactionView::showDetails()
     }
 
     QModelIndexList selection = transactionView->selectionModel()->selectedRows();
+
     if(!selection.isEmpty())
     {
         TransactionDescDialog dlg(selection.at(0));
@@ -622,6 +629,7 @@ void TransactionView::focusTransaction(const QModelIndex &idx)
     }
 
     QModelIndex targetIdx = transactionProxyModel->mapFromSource(idx);
+    
     transactionView->selectRow(targetIdx.row());
     
     computeSum();
@@ -637,6 +645,7 @@ void TransactionView::focusTransaction(const QModelIndex &idx)
 void TransactionView::resizeEvent(QResizeEvent* event)
 {
     QWidget::resizeEvent(event);
+
     columnResizingFixer->stretchColumnWidth(TransactionTableModel::ToAddress);
 }
 
@@ -647,12 +656,15 @@ bool TransactionView::eventFilter(QObject *obj, QEvent *event)
     if (event->type() == QEvent::KeyPress)
     {
         QKeyEvent *ke = static_cast<QKeyEvent *>(event);
+
         if (ke->key() == Qt::Key_C && ke->modifiers().testFlag(Qt::ControlModifier))
         {
             QModelIndex i = this->transactionView->currentIndex();
+
             if (i.isValid() && i.column() == TransactionTableModel::Amount)
             {
                  GUIUtil::setClipboard(i.data(TransactionTableModel::FormattedAmountRole).toString());
+
                  return true;
             }
         }
@@ -666,5 +678,6 @@ bool TransactionView::eventFilter(QObject *obj, QEvent *event)
 void TransactionView::updateWatchOnlyColumn(bool fHaveWatchOnly)
 {
     watchOnlyWidget->setVisible(fHaveWatchOnly);
+
     transactionView->setColumnHidden(TransactionTableModel::Watchonly, !fHaveWatchOnly);
 }

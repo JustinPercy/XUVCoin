@@ -74,7 +74,8 @@ class CMasternode
             MASTERNODE_EXPIRED = 2,
             MASTERNODE_VIN_SPENT = 3,
             MASTERNODE_REMOVE = 4,
-            MASTERNODE_POS_ERROR = 5
+            MASTERNODE_POS_ERROR = 5,
+            MASTERNODE_UNREACHABLE = 6
         };
 
         CTxIn vin;  
@@ -252,7 +253,7 @@ class CMasternode
         {
             if (fDebug)
             {
-                LogPrint("masternode", "%s : %d, %d --  %d \n", __FUNCTION__, GetAdjustedTime(), lastTimeSeen, (GetAdjustedTime() - lastTimeSeen) < seconds);
+                LogPrint("masternode", "%s : NOTICE - %d, %d --  %d \n", __FUNCTION__, GetAdjustedTime(), lastTimeSeen, (GetAdjustedTime() - lastTimeSeen) < seconds);
             }
 
             return (GetAdjustedTime() - lastTimeSeen) < seconds;
@@ -265,7 +266,7 @@ class CMasternode
 
         bool IsEnabled()
         {
-            return isPortOpen && activeState == MASTERNODE_ENABLED;
+            return activeState == MASTERNODE_ENABLED;
         }
 
         int GetMasternodeInputAge()
@@ -288,29 +289,37 @@ class CMasternode
         {
             std::string strStatus = "ACTIVE";
 
-            if(activeState == CMasternode::MASTERNODE_ENABLED)
+            switch (activeState)
             {
-                strStatus   = "ENABLED";
-            }
+                case CMasternode::MASTERNODE_ENABLED:
+                {
+                    strStatus   = "ENABLED";
+                }
+                break;
 
-            if(activeState == CMasternode::MASTERNODE_EXPIRED)
-            {
-                strStatus   = "EXPIRED";
-            }
+                case CMasternode::MASTERNODE_EXPIRED:
+                {
+                    strStatus   = "EXPIRED";
+                }
+                break;
 
-            if(activeState == CMasternode::MASTERNODE_VIN_SPENT)
-            {
-                strStatus = "VIN_SPENT";
-            }
-            
-            if(activeState == CMasternode::MASTERNODE_REMOVE)
-            {
-                strStatus    = "REMOVE";
-            }
-            
-            if(activeState == CMasternode::MASTERNODE_POS_ERROR)
-            {
-                strStatus = "POS_ERROR";
+                case CMasternode::MASTERNODE_VIN_SPENT:
+                {
+                    strStatus   = "VIN_SPENT";
+                }
+                break;
+
+                case CMasternode::MASTERNODE_REMOVE:
+                {
+                    strStatus   = "REMOVE";
+                }
+                break;
+
+                case CMasternode::MASTERNODE_POS_ERROR:
+                {
+                    strStatus = "POS_ERROR";
+                }
+                break;
             }
 
             return strStatus;

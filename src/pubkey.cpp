@@ -6,7 +6,7 @@
 // Copyright (c) 2014-2015 The Dash developers
 // Copyright (c) 2015 The Crave developers
 // Copyright (c) 2017 XUVCoin developers
-// Copyright (c) 2018-2019 Profit Hunters Coin developers
+// Copyright (c) 2018-2020 Profit Hunters Coin developers
 
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php
@@ -55,7 +55,8 @@ static int ecdsa_signature_parse_der_lax(const secp256k1_context* ctx, secp256k1
     secp256k1_ecdsa_signature_parse_compact(ctx, sig, tmpsig);
 
     /* Sequence tag byte */
-    if (pos == inputlen || input[pos] != 0x30)
+    if (pos == inputlen
+        || input[pos] != 0x30)
     {
         return 0;
     }
@@ -83,7 +84,8 @@ static int ecdsa_signature_parse_der_lax(const secp256k1_context* ctx, secp256k1
     }
 
     /* Integer tag byte for R */
-    if (pos == inputlen || input[pos] != 0x02)
+    if (pos == inputlen
+        || input[pos] != 0x02)
     {
         return 0;
     }
@@ -91,7 +93,8 @@ static int ecdsa_signature_parse_der_lax(const secp256k1_context* ctx, secp256k1
     pos++;
 
     /* Integer length for R */
-    if (pos == inputlen) {
+    if (pos == inputlen)
+    {
         return 0;
     }
 
@@ -109,6 +112,7 @@ static int ecdsa_signature_parse_der_lax(const secp256k1_context* ctx, secp256k1
         while (lenbyte > 0 && input[pos] == 0)
         {
             pos++;
+
             lenbyte--;
         }
 
@@ -118,6 +122,7 @@ static int ecdsa_signature_parse_der_lax(const secp256k1_context* ctx, secp256k1
         }
         
         rlen = 0;
+
         while (lenbyte > 0)
         {
             rlen = (rlen << 8) + input[pos];
@@ -139,7 +144,8 @@ static int ecdsa_signature_parse_der_lax(const secp256k1_context* ctx, secp256k1
     pos += rlen;
 
     /* Integer tag byte for S */
-    if (pos == inputlen || input[pos] != 0x02)
+    if (pos == inputlen
+        || input[pos] != 0x02)
     {
         return 0;
     }
@@ -157,6 +163,7 @@ static int ecdsa_signature_parse_der_lax(const secp256k1_context* ctx, secp256k1
     if (lenbyte & 0x80)
     {
         lenbyte -= 0x80;
+
         if (pos + lenbyte > inputlen)
         {
             return 0;
@@ -174,6 +181,7 @@ static int ecdsa_signature_parse_der_lax(const secp256k1_context* ctx, secp256k1
         }
         
         slen = 0;
+
         while (lenbyte > 0)
         {
             slen = (slen << 8) + input[pos];
@@ -238,6 +246,7 @@ static int ecdsa_signature_parse_der_lax(const secp256k1_context* ctx, secp256k1
         /* Overwrite the result again with a correctly-parsed but invalid
            signature if parsing failed. */
         memset(tmpsig, 0, 64);
+
         secp256k1_ecdsa_signature_parse_compact(ctx, sig, tmpsig);
     }
 
@@ -358,10 +367,8 @@ bool CPubKey::Derive(CPubKey& pubkeyChild, unsigned char ccChild[32], unsigned i
     {
         if (fDebug)
         {
-            LogPrint("pubkey", "%s : IsValid() == false (assert-1)\n", __FUNCTION__);
+            LogPrint("pubkey", "%s : ERROR - IsValid() = false \n", __FUNCTION__);
         }
-
-        cout << __FUNCTION__ << " (assert-1)" << endl; // REMOVE AFTER UNIT TESTING COMPLETED
 
         return false;
     }
@@ -370,10 +377,8 @@ bool CPubKey::Derive(CPubKey& pubkeyChild, unsigned char ccChild[32], unsigned i
     {
         if (fDebug)
         {
-            LogPrint("pubkey", "%s : (nChild >> 31) != 0 (assert-2)\n", __FUNCTION__);
+            LogPrint("pubkey", "%s : ERROR - (nChild >> 31) != 0 \n", __FUNCTION__);
         }
-
-        cout << __FUNCTION__ << " (assert-2)" << endl;  // REMOVE AFTER UNIT TESTING COMPLETED
 
         return false;
     }
@@ -382,10 +387,8 @@ bool CPubKey::Derive(CPubKey& pubkeyChild, unsigned char ccChild[32], unsigned i
     {
         if (fDebug)
         {
-            LogPrint("pubkey", "%s : begin() + 33 != end() (assert-3)\n", __FUNCTION__);
+            LogPrint("pubkey", "%s : ERROR - begin() + 33 != end() \n", __FUNCTION__);
         }
-
-        cout << __FUNCTION__ << " (assert-3)" << endl; // REMOVE AFTER UNIT TESTING COMPLETED
 
         return false;
     }
@@ -435,10 +438,8 @@ void CExtPubKey::Encode(unsigned char code[74]) const
     {
         if (fDebug)
         {
-            LogPrint("pubkey", "%s : pubkey.size() != 33 (assert-4)\n", __FUNCTION__);
+            LogPrint("pubkey", "%s : ERROR - Pubkey.size() != 33 \n", __FUNCTION__);
         }
-
-        cout << __FUNCTION__ << " (assert-4)" << endl; // REMOVE AFTER UNIT TESTING COMPLETED
 
         return;
     }
@@ -499,10 +500,8 @@ ECCVerifyHandle::ECCVerifyHandle()
         {
             if (fDebug)
             {
-                LogPrint("pubkey", "%s : secp256k1_context_verify != NULL (assert-5)\n", __FUNCTION__);
+                LogPrint("pubkey", "%s : ERROR - Secp256k1_context_verify != NULL \n", __FUNCTION__);
             }
-
-            cout << __FUNCTION__ << " (assert-5)" << endl; // REMOVE AFTER UNIT TESTING COMPLETED
 
             return;
         }
@@ -513,10 +512,8 @@ ECCVerifyHandle::ECCVerifyHandle()
         {
             if (fDebug)
             {
-                LogPrint("pubkey", "%s : secp256k1_context_verify == NULL (assert-6)\n", __FUNCTION__);
+                LogPrint("pubkey", "%s : ERROR - Secp256k1_context_verify = NULL \n", __FUNCTION__);
             }
-
-            cout << __FUNCTION__ << " (assert-6)" << endl; // REMOVE AFTER UNIT TESTING COMPLETED
 
             return;
         }
@@ -529,16 +526,15 @@ ECCVerifyHandle::ECCVerifyHandle()
 ECCVerifyHandle::~ECCVerifyHandle()
 {
     refcount--;
+    
     if (refcount == 0)
     {
         if (secp256k1_context_verify == NULL)
         {
             if (fDebug)
             {
-                LogPrint("pubkey", "%s : secp256k1_context_verify == NULL (assert-7)\n", __FUNCTION__);
+                LogPrint("pubkey", "%s : ERROR - Secp256k1_context_verify = NULL \n", __FUNCTION__);
             }
-
-            cout << __FUNCTION__ << " (assert-7)" << endl; // REMOVE AFTER UNIT TESTING COMPLETED
 
             return;
         }

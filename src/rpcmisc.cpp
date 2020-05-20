@@ -37,6 +37,7 @@
 #include <vector>
 #include <string>
 
+
 using namespace std;
 using namespace boost;
 using namespace boost::assign;
@@ -60,12 +61,10 @@ Value getinfo(const Array& params, bool fHelp)
     obj.push_back(Pair("protocol_version",                          (int)PROTOCOL_VERSION));
     obj.push_back(Pair("protocol_testnet",                          TestNet()));
     obj.push_back(Pair("protocol_turbosyncmax",                     TURBOSYNC_MAX));
-    obj.push_back(Pair("errors",                                    GetWarnings("statusbar")));
     obj.push_back(Pair("timeoffset",                                (int64_t)GetTimeOffset()));
-    if (nBestHeight)
-    {
-        obj.push_back(Pair("blocks",                                (int)nBestHeight));
-    }
+
+    obj.push_back(Pair("blocks",                                    (int)nBestHeight));
+
     if (pindexBest)
     {
         obj.push_back(Pair("bestblockhash",                         pindexBest->GetBlockHash().GetHex()));
@@ -84,8 +83,6 @@ Value getinfo(const Array& params, bool fHelp)
     obj.push_back(Pair("pow_difficulty",                            GetDifficulty(GetLastBlockIndex(pindexBest, false))));
     obj.push_back(Pair("pos_difficulty",                            GetDifficulty(GetLastBlockIndex(pindexBest, true))));
 
-
-
 #ifdef ENABLE_WALLET
     if (pwalletMain)
     {
@@ -101,7 +98,7 @@ Value getinfo(const Array& params, bool fHelp)
         }
 
         obj.push_back(Pair("pow_newmint",                           ValueFromAmount(pwalletMain->GetNewPOWMint())));
-        obj.push_back(Pair("pos_newmint",                           ValueFromAmount(pwalletMain->GetNewPOSMint())));
+        //obj.push_back(Pair("pos_newmint",                           ValueFromAmount(pwalletMain->GetNewPOSMint())));
 
         obj.push_back(Pair("stake_locked",                          ValueFromAmount(pwalletMain->GetStake())));
 
@@ -119,11 +116,12 @@ Value getinfo(const Array& params, bool fHelp)
 
 #endif
 
-
     obj.push_back(Pair("connections",                               (int)vNodes.size()));
 
     obj.push_back(Pair("proxy",                                     (proxy.first.IsValid() ? proxy.first.ToStringIPPort() : string())));
     obj.push_back(Pair("ip",                                        GetLocalAddress(NULL).ToStringIP()));
+
+    obj.push_back(Pair("errors",                                    GetWarnings("statusbar")));
 
     return obj;
 }
@@ -148,7 +146,9 @@ class DescribeAddressVisitor : public boost::static_visitor<Object>
         Object operator()(const CKeyID &keyID) const
         {
             Object obj;
+
             CPubKey vchPubKey;
+
             obj.push_back(Pair("isscript", false));
             
             if (mine == ISMINE_SPENDABLE)
@@ -164,12 +164,15 @@ class DescribeAddressVisitor : public boost::static_visitor<Object>
         Object operator()(const CScriptID &scriptID) const
         {
             Object obj;
+
             obj.push_back(Pair("isscript", true));
 
             if (mine != ISMINE_NO)
             {
                 CScript subscript;
+
                 pwalletMain->GetCScript(scriptID, subscript);
+
                 std::vector<CTxDestination> addresses;
                 txnouttype whichType;
                 
@@ -182,9 +185,9 @@ class DescribeAddressVisitor : public boost::static_visitor<Object>
                 
                 Array a;
                 
-                BOOST_FOREACH(const CTxDestination& addr, addresses)
+                for(const CTxDestination& addr: addresses)
                 {
-                    a.push_back(CPHCcoinAddress(addr).ToString());
+                    a.push_back(CCoinAddress(addr).ToString());
                 }
                 
                 obj.push_back(Pair("addresses",                 a));
@@ -201,6 +204,7 @@ class DescribeAddressVisitor : public boost::static_visitor<Object>
         Object operator()(const CStealthAddress &stxAddr) const
         {
             Object obj;
+
             obj.push_back(Pair("todo", true));
 
             return obj;
@@ -217,7 +221,7 @@ Value validateaddress(const Array& params, bool fHelp)
                             "Return information about <PHCaddress>.");
     }
 
-    CPHCcoinAddress address(params[0].get_str());
+    CCoinAddress address(params[0].get_str());
 
     bool isValid = address.IsValid();
 
@@ -228,16 +232,20 @@ Value validateaddress(const Array& params, bool fHelp)
     {
         CTxDestination dest = address.Get();
         string currentAddress = address.ToString();
+
         ret.push_back(Pair("address",           currentAddress));
 
 #ifdef ENABLE_WALLET
         isminetype mine = pwalletMain ? IsMine(*pwalletMain, dest) : ISMINE_NO;
+
         ret.push_back(Pair("ismine",            (mine & ISMINE_SPENDABLE) ? true : false));
         
         if (mine != ISMINE_NO)
         {
             ret.push_back(Pair("iswatchonly",   (mine & ISMINE_WATCH_ONLY) ? true: false));
+
             Object detail = boost::apply_visitor(DescribeAddressVisitor(mine), dest);
+
             ret.insert(ret.end(), detail.begin(), detail.end());
         }
         
@@ -269,7 +277,7 @@ Value validatepubkey(const Array& params, bool fHelp)
     
     CKeyID keyID = pubKey.GetID();
 
-    CPHCcoinAddress address;
+    CCoinAddress address;
     address.Set(keyID);
 
     Object ret;
@@ -279,11 +287,13 @@ Value validatepubkey(const Array& params, bool fHelp)
     {
         CTxDestination dest = address.Get();
         string currentAddress = address.ToString();
+
         ret.push_back(Pair("address",               currentAddress));
         ret.push_back(Pair("iscompressed",          isCompressed));
 
 #ifdef ENABLE_WALLET
         isminetype mine = pwalletMain ? IsMine(*pwalletMain, dest) : ISMINE_NO;
+
         ret.push_back(Pair("ismine",                (mine & ISMINE_SPENDABLE) ? true : false));
         
         if (mine != ISMINE_NO)
@@ -291,6 +301,7 @@ Value validatepubkey(const Array& params, bool fHelp)
         	ret.push_back(Pair("iswatchonly",       (mine & ISMINE_WATCH_ONLY) ? true: false));
 
         	Object detail = boost::apply_visitor(DescribeAddressVisitor(mine), dest);
+
             ret.insert(ret.end(), detail.begin(),   detail.end());
         }
 
@@ -318,7 +329,7 @@ Value verifymessage(const Array& params, bool fHelp)
     string strSign     = params[1].get_str();
     string strMessage  = params[2].get_str();
 
-    CPHCcoinAddress addr(strAddress);
+    CCoinAddress addr(strAddress);
     
     if (!addr.IsValid())
     {
@@ -326,6 +337,7 @@ Value verifymessage(const Array& params, bool fHelp)
     }
 
     CKeyID keyID;
+
     if (!addr.GetKeyID(keyID))
     {
         throw JSONRPCError(RPC_TYPE_ERROR, "Address does not refer to key");
@@ -345,6 +357,7 @@ Value verifymessage(const Array& params, bool fHelp)
     ss << strMessage;
 
     CPubKey pubkey;
+    
     if (!pubkey.RecoverCompact(ss.GetHash(), vchSig))
     {
         return false;

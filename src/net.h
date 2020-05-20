@@ -6,7 +6,7 @@
 // Copyright (c) 2014-2015 The Dash developers
 // Copyright (c) 2015 The Crave developers
 // Copyright (c) 2017 XUVCoin developers
-// Copyright (c) 2018-2019 Profit Hunters Coin developers
+// Copyright (c) 2018-2020 Profit Hunters Coin developers
 
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php
@@ -35,7 +35,6 @@
 #endif
 
 #include <boost/array.hpp>
-#include <boost/foreach.hpp>
 #include <boost/signals2/signal.hpp>
 #include <openssl/rand.h>
 
@@ -97,44 +96,48 @@ void SocketSendData(CNode *pnode);
 
 typedef int NodeId;
 
-
-
 inline int GetMaxInvBandwidth(int64_t TurboSyncMax)
 {
     switch (TurboSyncMax)
     {
         case 1:
         {
-            return 100000; // Level 1 (up to 100% faster)
+            // Level 1 (up to 100% faster)
+            return 100000; 
         }
         break;
             
         case 2:
         {
-            return 200000; // Level 2 (up to 200% faster)
+            // Level 2 (up to 200% faster)
+            return 200000; 
         }
         break;
 
         case 3:
         {
-            return 300000; // Level 3 (up to 300% faster)
+            // Level 3 (up to 300% faster)
+            return 300000;
         }
         break;
 
         case 4:
         {
-            return 400000; // Level 4 (up to 400% faster)
+            // Level 4 (up to 400% faster)
+            return 400000; 
         }
         break;
 
         case 5:
         {
-            return 500000; // Level 5 (up to 500% faster)
+            // Level 5 (up to 500% faster)
+            return 500000; 
         }
         break;
     }
 
-    return 50000; // Default
+    // Default
+    return 50000;
 }
 
 inline int GetMaxAddrBandwidth(int64_t TurboSyncMax)
@@ -143,36 +146,42 @@ inline int GetMaxAddrBandwidth(int64_t TurboSyncMax)
     {
         case 1:
         {
-            return 2000; // Level 1  (up to 100% faster)
+            // Level 1  (up to 100% faster)
+            return 2000; 
         }
         break;
 
         case 2:
         {
-            return 4000; // Level 2  (up to 200% faster)
+            // Level 2  (up to 200% faster)
+            return 4000; 
         }
         break;
 
         case 3:
         {
-            return 8000; // Level 3  (up to 300% faster)
+            // Level 3  (up to 300% faster)
+            return 8000; 
         }
         break;
 
         case 4:
         {
-            return 16000; // Level 4  (up to 400% faster)
+            // Level 4  (up to 400% faster)
+            return 16000; 
         }
         break;
 
         case 5:
         {
-            return 32000; // Level 5  (up to 500% faster)
+            // Level 5  (up to 500% faster)
+            return 32000; 
         }
         break;
     }
 
-    return 1000; // Default
+    // Default
+    return 1000;
 }
 
 inline int GetMaxBlocksBandwidth(int64_t TurboSyncMax)
@@ -181,36 +190,42 @@ inline int GetMaxBlocksBandwidth(int64_t TurboSyncMax)
     {
         case 1:
         {
-            return 1000; // Level 1  (100% faster)
+            // Level 1  (100% faster)
+            return 1000;
         }
         break;
 
         case 2:
         {
-            return 2000; // Level 2  (200% faster)
+            // Level 2  (200% faster)
+            return 2000;
         }
         break;
 
         case 3:
         {
-            return 4000; // Level 3  (300% faster)
+            // Level 3  (300% faster)
+            return 4000; 
         }
         break;
 
         case 4:
         {
-            return 8000; // Level 4  (400% faster)
+            // Level 4  (400% faster)
+            return 8000; 
         }
         break;
 
         case 5:
         {
-            return 16000; // Level 5  (500% faster)
+            // Level 5  (500% faster)
+            return 16000; 
         }
         break;
     }
 
-    return 500; // Default
+    // Default
+    return 500;
 }
 
 /** The maximum number of entries in an 'inv' protocol message */
@@ -325,7 +340,11 @@ namespace CBan
         BanReasonForkedWallet               = 5,
         BanReasonFloodingWallet             = 6,
         BanReasonDDoSWallet                 = 7,
-        BanReasonDoubleSpendWallet          = 8
+        BanReasonDoubleSpendWallet          = 8,
+        BanReasonEclipseWallet              = 9,
+        BanReasonErebusWallet               = 10,
+        BanReasonBGPWallet                  = 11,
+        BanReasonResettingSyncWallet        = 12
 
     } BanReason;
 
@@ -450,6 +469,7 @@ class CNodeStats
         
         bool fInbound;
         bool fSyncNode;
+
         double dPingTime;
         double dPingWait;
 
@@ -482,13 +502,20 @@ class CNetMessage
 {
     public:
 
-        bool in_data;                   // parsing header (false) or data (true)
+        // parsing header (false) or data (true)
+        bool in_data;                   
 
-        CDataStream hdrbuf;             // partially received header
-        CMessageHeader hdr;             // complete header
+        // partially received header
+        CDataStream hdrbuf;
+
+        // complete header
+        CMessageHeader hdr;
+
         unsigned int nHdrPos;
 
-        CDataStream vRecv;              // received message data
+        // received message data
+        CDataStream vRecv;
+
         unsigned int nDataPos;
 
         CNetMessage(int nTypeIn, int nVersionIn) : hdrbuf(nTypeIn, nVersionIn), vRecv(nTypeIn, nVersionIn)
@@ -570,8 +597,10 @@ class CNode
         SOCKET hSocket;
         CDataStream ssSend;
         
-        size_t nSendSize; // total size of all vSendMsg entries
-        size_t nSendOffset; // offset inside the first vSendMsg already sent
+        // total size of all vSendMsg entries
+        size_t nSendSize; 
+        // offset inside the first vSendMsg already sent
+        size_t nSendOffset;
         uint64_t nSendBytes;
         
         std::deque<CSerializeData> vSendMsg;
@@ -598,7 +627,7 @@ class CNode
         int nRefCount;
         NodeId id;
 
-        bool fStartSync;
+        bool fSyncNode;
 
         // Turbosync (C) 2019 - Profit Hunters Coin
         int64_t nTurboSync;
@@ -676,6 +705,8 @@ class CNode
         // Whether a ping is requested.
         bool fPingQueued;
 
+        int nRecvAddrs;
+
         CNode(SOCKET hSocketIn, CAddress addrIn, std::string addrNameIn = "", bool fInboundIn=false) : ssSend(SER_NETWORK, INIT_PROTO_VERSION), setAddrKnown(5000)
         {
             nServices = 0;
@@ -708,7 +739,7 @@ class CNode
             hashLastGetBlocksEnd = 0;
             nStartingHeight = -1;
 
-            fStartSync = false;
+            fSyncNode = false;
             fGetAddr = false;
             fRelayTxes = false;
             
@@ -752,10 +783,13 @@ class CNode
             dOrphanRecv.timestamp = 0;
             dOrphanRecv.synced = false;
 
+            nRecvAddrs = 0;
+
             // Global Namespace Start
             {
                 // Node Lock
                 LOCK(cs_nLastNodeId);
+
                 id = nLastNodeId++;
             }
             // Global Namespace End
@@ -819,7 +853,8 @@ class CNode
         unsigned int GetTotalRecvSize()
         {
             unsigned int total = 0;
-            BOOST_FOREACH(const CNetMessage &msg, vRecvMsg)
+
+            for(const CNetMessage &msg: vRecvMsg)
             {
                 total += msg.vRecv.size() + 24;
             }
@@ -834,7 +869,8 @@ class CNode
         void SetRecvVersion(int nVersionIn)
         {
             nRecvVersion = nVersionIn;
-            BOOST_FOREACH(CNetMessage &msg, vRecvMsg)
+
+            for(CNetMessage &msg: vRecvMsg)
             {
                 msg.SetVersion(nVersionIn);
             }
@@ -880,6 +916,7 @@ class CNode
             // Global Namespace Start
             {
                 LOCK(cs_inventory);
+
                 setInventoryKnown.insert(inv);
             }
             // Global Namespace End
@@ -890,6 +927,7 @@ class CNode
             // Global Namespace Start
             {
                 LOCK(cs_inventory);
+
                 return setInventoryKnown.size();
             }
             // Global Namespace End
@@ -900,6 +938,7 @@ class CNode
             // Global Namespace Start
             {
                 LOCK(cs_inventory);
+
                 if (!setInventoryKnown.count(inv))
                 {
                     vInventoryToSend.push_back(inv);
@@ -936,7 +975,7 @@ class CNode
 
             if (fDebug)
             {
-                LogPrint("net", "%s : askfor %s   %d (%s)\n", __FUNCTION__, inv.ToString().c_str(), nRequestTime, DateTimeStrFormat("%H:%M:%S", nRequestTime/1000000).c_str());
+                LogPrint("net", "%s : NOTICE - askfor %s   %d (%s) \n", __FUNCTION__, inv.ToString().c_str(), nRequestTime, DateTimeStrFormat("%H:%M:%S", nRequestTime/1000000).c_str());
             }
 
             // Make sure not to reuse time indexes to keep things in the same order
@@ -978,10 +1017,8 @@ class CNode
             {
                 if (fDebug)
                 {
-                    LogPrint("net", "%s : ssSend.size() != 0 (assert-2)\n", __FUNCTION__);
+                    LogPrint("net", "%s : ERROR - ssSend.size() != 0 \n", __FUNCTION__);
                 }
-
-                cout << __FUNCTION__ << " (assert-2)" << endl; // REMOVE AFTER UNIT TESTING COMPLETED
 
                 return;
             }
@@ -990,7 +1027,7 @@ class CNode
  
             if (fDebug)
             {
-                LogPrint("net", "%s : sending: %s ", __FUNCTION__, pszCommand);
+                LogPrint("net", "%s : OK - Sending: %s ", __FUNCTION__, pszCommand);
             }
         }
 
@@ -1003,7 +1040,7 @@ class CNode
 
             if (fDebug)
             {
-                LogPrint("net", "%s : (aborted)\n", __FUNCTION__);
+                LogPrint("net", "%s : WARNING - (aborted) \n", __FUNCTION__);
             }
         }
 
@@ -1017,7 +1054,7 @@ class CNode
             {
                 if (fDebug)
                 {
-                    LogPrint("net", "%s : dropmessages DROPPING SEND MESSAGE\n", __FUNCTION__);
+                    LogPrint("net", "%s : ERROR - dropmessages DROPPING SEND MESSAGE \n", __FUNCTION__);
                 }
 
                 AbortMessage();
@@ -1032,6 +1069,7 @@ class CNode
 
             // Set the size
             unsigned int nSize = ssSend.size() - CMessageHeader::HEADER_SIZE;
+
             memcpy((char*)&ssSend[CMessageHeader::MESSAGE_SIZE_OFFSET], &nSize, sizeof(nSize));
 
             // Set the checksum
@@ -1044,10 +1082,8 @@ class CNode
             {
                 if (fDebug)
                 {
-                    LogPrint("net", "%s : ssSend.size() != 0 (assert-3)\n", __FUNCTION__);
+                    LogPrint("net", "%s : ERROR - ssSend.size() != 0 \n", __FUNCTION__);
                 }
-
-                cout << __FUNCTION__ << " (assert-3)" << endl; // REMOVE AFTER UNIT TESTING COMPLETED
 
                 return;
             }
@@ -1056,7 +1092,7 @@ class CNode
 
             if (fDebug)
             {
-                LogPrint("net", "%s : (%d bytes)\n", __FUNCTION__, nSize);
+                LogPrint("net", "%s : NOTICE - (%d bytes) \n", __FUNCTION__, nSize);
             }
             
             std::deque<CSerializeData>::iterator it = vSendMsg.insert(vSendMsg.end(), CSerializeData());
@@ -1295,7 +1331,7 @@ class CNode
 
         bool HasFulfilledRequest(std::string strRequest)
         {
-            BOOST_FOREACH(std::string& type, vecRequestsFulfilled)
+            for(std::string& type: vecRequestsFulfilled)
             {
                 if(type == strRequest)
                 {
@@ -1371,7 +1407,8 @@ inline void RelayInventory(const CInv& inv)
     {
         // Put on lists to offer to the other nodes
         LOCK(cs_vNodes);
-        BOOST_FOREACH(CNode* pnode, vNodes)
+
+        for(CNode* pnode: vNodes)
         {
             pnode->PushInventory(inv);
         }
@@ -1380,6 +1417,7 @@ inline void RelayInventory(const CInv& inv)
 }
 
 class CTransaction;
+
 void RelayTransaction(const CTransaction& tx, const uint256& hash);
 void RelayTransaction(const CTransaction& tx, const uint256& hash, const CDataStream& ss);
 void RelayTransactionLockReq(const CTransaction& tx, bool relayToAll=false);
@@ -1394,6 +1432,7 @@ class CAddrDB
     public:
 
         CAddrDB();
+
         bool Write(const CAddrMan& addr);
         bool Read(CAddrMan& addr);
 };
@@ -1408,6 +1447,7 @@ class CBanDB
     public:
     
         CBanDB();
+        
         bool Write(const CBan::banmap_t& banSet);
         bool Read(CBan::banmap_t& banSet);
 };

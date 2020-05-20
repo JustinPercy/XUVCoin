@@ -6,7 +6,7 @@
 // Copyright (c) 2014-2015 The Dash developers
 // Copyright (c) 2015 The Crave developers
 // Copyright (c) 2017 XUVCoin developers
-// Copyright (c) 2018-2019 Profit Hunters Coin developers
+// Copyright (c) 2018-2020 Profit Hunters Coin developers
 
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php
@@ -19,7 +19,7 @@
 
 #include <string>
 #include <vector>
-#include <boost/foreach.hpp>
+
 #include <openssl/crypto.h>
 #include <openssl/ec.h>
 #include <openssl/ecdh.h>
@@ -27,6 +27,7 @@
 #include <openssl/aes.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
+
 #ifdef WIN32
 #include <windows.h>
 #endif
@@ -34,7 +35,8 @@
 
 bool CCrypter::SetKeyFromPassphrase(const SecureString& strKeyData, const std::vector<unsigned char>& chSalt, const unsigned int nRounds, const unsigned int nDerivationMethod)
 {
-    if (nRounds < 1 || chSalt.size() != WALLET_CRYPTO_SALT_SIZE)
+    if (nRounds < 1
+        || chSalt.size() != WALLET_CRYPTO_SALT_SIZE)
     {
         return false;
     }
@@ -73,7 +75,8 @@ bool CCrypter::SetKeyFromPassphrase(const SecureString& strKeyData, const std::v
 
 bool CCrypter::SetKey(const CKeyingMaterial& chNewKey, const std::vector<unsigned char>& chNewIV)
 {
-    if (chNewKey.size() != WALLET_CRYPTO_KEY_SIZE || chNewIV.size() != WALLET_CRYPTO_KEY_SIZE)
+    if (chNewKey.size() != WALLET_CRYPTO_KEY_SIZE
+        || chNewIV.size() != WALLET_CRYPTO_KEY_SIZE)
     {
         return false;
     }
@@ -204,6 +207,7 @@ bool EncryptSecret(const CKeyingMaterial& vMasterKey, const CKeyingMaterial &vch
 bool DecryptSecret(const CKeyingMaterial& vMasterKey, const std::vector<unsigned char>& vchCiphertext, const uint256& nIV, CKeyingMaterial& vchPlaintext)
 {
     CCrypter cKeyCrypter;
+    
     std::vector<unsigned char> chIV(WALLET_CRYPTO_KEY_SIZE);
 
     memcpy(&chIV[0], &nIV, WALLET_CRYPTO_KEY_SIZE);
@@ -227,11 +231,12 @@ bool EncryptAES256(const SecureString& sKey, const SecureString& sPlaintext, con
     int nFLen = 0;
 
     // Verify key sizes
-    if(sKey.size() != 32 || sIV.size() != AES_BLOCK_SIZE)
+    if(sKey.size() != 32
+        || sIV.size() != AES_BLOCK_SIZE)
     {
         if (fDebug)
         {
-            LogPrint("crypter", "%s : crypter EncryptAES256 - Invalid key or block size: Key: %d sIV:%d\n", __FUNCTION__, sKey.size(), sIV.size());
+            LogPrint("crypter", "%s : ERROR - Crypter EncryptAES256 - Invalid key or block size: Key: %d sIV:%d \n", __FUNCTION__, sKey.size(), sIV.size());
         }
 
         return false;
@@ -283,11 +288,12 @@ bool DecryptAES256(const SecureString& sKey, const std::string& sCiphertext, con
     int nPLen = nLen, nFLen = 0;
 
     // Verify key sizes
-    if(sKey.size() != 32 || sIV.size() != AES_BLOCK_SIZE)
+    if(sKey.size() != 32
+        || sIV.size() != AES_BLOCK_SIZE)
     {
         if (fDebug)
         {
-            LogPrint("crypter", "%s : crypter DecryptAES256 - Invalid key or block size\n", __FUNCTION__);
+            LogPrint("crypter", "%s : ERROR - Crypter DecryptAES256 - Invalid key or block size \n", __FUNCTION__);
         }
         
         return false;
@@ -361,6 +367,7 @@ bool CCryptoKeyStore::LockKeyStore()
     // Global Namespace Start
     {
         LOCK(cs_KeyStore);
+
         vMasterKey.clear();
     }
     // Global Namespace End
@@ -383,9 +390,11 @@ bool CCryptoKeyStore::Unlock(const CKeyingMaterial& vMasterKeyIn)
         }
 
         CryptedKeyMap::const_iterator mi = mapCryptedKeys.begin();
+
         for (; mi != mapCryptedKeys.end(); ++mi)
         {
             const CPubKey &vchPubKey = (*mi).second.first;
+
             const std::vector<unsigned char> &vchCryptedSecret = (*mi).second.second;
             
             CKeyingMaterial vchSecret;
@@ -410,6 +419,7 @@ bool CCryptoKeyStore::Unlock(const CKeyingMaterial& vMasterKeyIn)
 
             return false;
         }
+        
         vMasterKey = vMasterKeyIn;
     }
     // Global Namespace End
@@ -437,6 +447,7 @@ bool CCryptoKeyStore::AddKeyPubKey(const CKey& key, const CPubKey &pubkey)
         }
 
         std::vector<unsigned char> vchCryptedSecret;
+
         CKeyingMaterial vchSecret(key.begin(), key.end());
 
         if (!EncryptSecret(vMasterKey, vchSecret, pubkey.GetHash(), vchCryptedSecret))
@@ -486,12 +497,15 @@ bool CCryptoKeyStore::GetKey(const CKeyID &address, CKey& keyOut) const
         }
 
         CryptedKeyMap::const_iterator mi = mapCryptedKeys.find(address);
+
         if (mi != mapCryptedKeys.end())
         {
             const CPubKey &vchPubKey = (*mi).second.first;
+
             const std::vector<unsigned char> &vchCryptedSecret = (*mi).second.second;
 
             CKeyingMaterial vchSecret;
+
             if (!DecryptSecret(vMasterKey, vchCryptedSecret, vchPubKey.GetHash(), vchSecret))
             {
                 return false;
@@ -520,12 +534,16 @@ bool CCryptoKeyStore::GetPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) co
         LOCK(cs_KeyStore);
 
         if (!IsCrypted())
+        {
             return CKeyStore::GetPubKey(address, vchPubKeyOut);
+        }
 
         CryptedKeyMap::const_iterator mi = mapCryptedKeys.find(address);
+
         if (mi != mapCryptedKeys.end())
         {
             vchPubKeyOut = (*mi).second.first;
+
             return true;
         }
     }
@@ -541,19 +559,22 @@ bool CCryptoKeyStore::EncryptKeys(CKeyingMaterial& vMasterKeyIn)
     {
         LOCK(cs_KeyStore);
 
-        if (!mapCryptedKeys.empty() || IsCrypted())
+        if (!mapCryptedKeys.empty()
+            || IsCrypted())
         {
             return false;
         }
 
         fUseCrypto = true;
 
-        BOOST_FOREACH(KeyMap::value_type& mKey, mapKeys)
+        for(KeyMap::value_type& mKey: mapKeys)
         {
             const CKey &key = mKey.second;
 
             CPubKey vchPubKey = key.GetPubKey();
+
             CKeyingMaterial vchSecret(key.begin(), key.end());
+
             std::vector<unsigned char> vchCryptedSecret;
             
             if (!EncryptSecret(vMasterKeyIn, vchSecret, vchPubKey.GetHash(), vchCryptedSecret))

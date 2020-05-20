@@ -23,17 +23,21 @@
 #include <QWidget>
 #include <QCompleter>
 
+
 namespace Ui
 {
     class RPCConsole;
 }
 
+
 class ClientModel;
+
 
 QT_BEGIN_NAMESPACE
 class QMenu;
 class QItemSelection;
 QT_END_NAMESPACE
+
 
 /** Local Bitcoin RPC console. */
 class RPCConsole: public QWidget
@@ -43,6 +47,7 @@ class RPCConsole: public QWidget
     public:
 
         explicit RPCConsole(QWidget *parent = 0);
+
         ~RPCConsole();
 
         void setClientModel(ClientModel *model);
@@ -72,7 +77,7 @@ class RPCConsole: public QWidget
         void on_openDebugLogfileButton_clicked();
         
         /** open the phc.conf from the current datadir */
-        void on_openPHCConfigfileButton_clicked();
+        void on_openConfigfileButton_clicked();
         
         /** open the masternode.conf from the current datadir */
         void on_openMNConfigfileButton_clicked();
@@ -149,6 +154,12 @@ class RPCConsole: public QWidget
 
         /** Stops the internal PoW Miner **/
         void setgenerateFALSE();
+
+        /** Starts the Staking threads **/
+        void setstakingTRUE();
+
+        /** Stops Staking threads **/
+        void setstakingFALSE();
         
         /** Handle selection of peer in peers list */
         void peerSelected(const QItemSelection &selected, const QItemSelection &deselected);
@@ -208,6 +219,7 @@ class RPCConsole: public QWidget
         
         QMenu *peersTableContextMenu;
         QMenu *banTableContextMenu;
+        
         QCompleter *autoCompleter;
 
 };
